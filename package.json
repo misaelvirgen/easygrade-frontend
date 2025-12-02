@@ -10,7 +10,7 @@
   "dependencies": {
     "axios": "^1.5.0",
     "chart.js": "^4.4.0",
-    "filepond": "^4.34.0",
+    "filepond": "^4.32.10",
     "next": "14.0.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",
