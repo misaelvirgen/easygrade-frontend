@@ -10,7 +10,8 @@ export default function Home() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
-      <h1 className="text-3xl font-bold mb-6">AI Grading Helper</h1>
+      <h1 className="text-3xl font-bold mb-6">Welcome to EasyGrade</h1>
+      <p>Grading Made Easy</p>
       <button onClick={handleGoogleLogin} className="bg-blue-600 text-white px-6 py-2 rounded mb-4">
         Login with Google
       </button>
