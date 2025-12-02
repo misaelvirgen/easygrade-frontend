@@ -1,5 +1,6 @@
 import '../styles/globals.css';
 import { QueryClient, QueryClientProvider } from 'react-query';
+
 const queryClient = new QueryClient();
 
 function MyApp({ Component, pageProps }) {
@@ -9,4 +10,5 @@ function MyApp({ Component, pageProps }) {
     </QueryClientProvider>
   );
 }
+
 export default MyApp;
