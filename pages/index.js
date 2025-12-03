@@ -89,6 +89,14 @@ export default function Home() {
           >
             {loading ? 'Grading...' : 'Grade Essay'}
           </button>
+          
+          <button
+  onClick={() => router.push('/pdf-upload')}
+  className="bg-indigo-600 text-white px-6 py-2 rounded-full"
+>
+  Upload a PDF
+</button>
+
         </form>
 
         {(score !== null || feedback) && (
