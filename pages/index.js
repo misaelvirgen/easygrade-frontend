@@ -88,10 +88,13 @@ export default function Home() {
             </p>
           </div>
 
-          <img
-            src="/EasyGradeLogo.png"
-            className="w-20 h-auto object-contain opacity-80"
-          />
+<img
+  src="/EasyGradeLogo.png"
+  alt="EasyGrade Logo"
+  className="w-16 h-16 object-contain"
+  style={{ maxWidth: "64px", maxHeight: "64px" }}
+/>
+
         </section>
 
         {/* LAYOUT GRID */}
