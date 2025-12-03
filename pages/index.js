@@ -15,7 +15,9 @@ export default function Home() {
   };
 
   const handleCanvasToken = () => {
-    const token = prompt('Enter Canvas API Token:');
+    const token = typeof window !== 'undefined'
+      ? window.prompt('Enter Canvas API Token:')
+      : null;
     if (token) {
       localStorage.setItem('canvas_token', token);
       alert('Canvas token saved!');
@@ -33,7 +35,6 @@ export default function Home() {
 
     try {
       const data = await gradeAssignment(essayText, rubricText);
-      // data shape depends on backend; we’ll handle common keys
       setGradeResult(data);
     } catch (err) {
       console.error('Grade error:', err);
@@ -48,8 +49,8 @@ export default function Home() {
   };
 
   const handlePdfSelect = (e) => {
-    const file = e.target.files?.[0];
-    setPdfFile(file || null);
+    const file = e.target.files?.[0] || null;
+    setPdfFile(file);
     setErrorMsg('');
   };
 
@@ -67,9 +68,8 @@ export default function Home() {
       if (!text) {
         setErrorMsg('No text could be extracted from this PDF.');
       } else {
-        // 👇 This is the key: fill the essay box with extracted text
         setEssayText(text);
-        setGradeResult(null); // reset last grade
+        setGradeResult(null);
       }
     } catch (err) {
       console.error('PDF extract error:', err);
@@ -84,171 +84,346 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center py-10 px-4">
-      <div className="w-full max-w-5xl space-y-8">
-        {/* Header */}
-        <header className="text-center">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            EasyGrade
-          </h1>
-          <p className="text-gray-600">Grading Made Easy</p>
-        </header>
-
-        {/* Top actions: login + LMS */}
-        <section className="flex flex-wrap justify-center gap-3">
-          <button
-            onClick={handleGoogleLogin}
-            className="bg-blue-600 text-white px-6 py-2 rounded-full"
-          >
-            Login with Google
-          </button>
-          <button
-            onClick={handleCanvasToken}
-            className="bg-green-600 text-white px-6 py-2 rounded-full"
-          >
-            Connect Canvas
-          </button>
-        </section>
-
-        {/* Error banner */}
-        {errorMsg && (
-          <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg">
-            {errorMsg}
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex">
+      {/* SIDEBAR – playful EdTech style */}
+      <aside className="hidden md:flex w-64 flex-col bg-gradient-to-b from-indigo-600 via-indigo-500 to-violet-500 text-white shadow-xl">
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-indigo-300/30">
+          <div className="h-10 w-10 rounded-2xl bg-white/90 flex items-center justify-center shadow-md overflow-hidden">
+            <img
+              src="/EasyGradeLogo.png"
+              alt="EasyGrade Logo"
+              className="h-10 w-10 object-contain"
+            />
           </div>
-        )}
+          <div>
+            <p className="text-lg font-bold tracking-tight">EasyGrade</p>
+            <p className="text-xs text-indigo-100">Grading made easy</p>
+          </div>
+        </div>
 
-        {/* Main layout: left = essay + rubric, right = PDF upload + result */}
-        <main className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-          {/* Left column: essay & rubric */}
-          <div className="space-y-4">
-            <div className="bg-white rounded-2xl shadow p-4">
-              <label className="block text-sm font-semibold text-gray-800 mb-2">
-                Student Essay
-              </label>
-              <textarea
-                value={essayText}
-                onChange={(e) => setEssayText(e.target.value)}
-                rows={10}
-                className="w-full border border-gray-200 rounded-lg p-3 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="Paste an essay here or extract from a PDF on the right."
-              />
-            </div>
+        <nav className="flex-1 px-4 py-4 space-y-2 text-sm">
+          <p className="text-[11px] uppercase tracking-widest text-indigo-100/80 mb-1">
+            Workspace
+          </p>
 
-            <div className="bg-white rounded-2xl shadow p-4">
-              <label className="block text-sm font-semibold text-gray-800 mb-2">
-                Rubric (optional)
-              </label>
-              <textarea
-                value={rubricText}
-                onChange={(e) => setRubricText(e.target.value)}
-                rows={6}
-                className="w-full border border-gray-200 rounded-lg p-3 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="Paste your rubric here (JSON, bullet points, or plain text)."
-              />
-            </div>
+          {/* Active item */}
+          <button className="w-full flex items-center justify-between rounded-2xl px-3 py-2.5 bg-white/15 text-white font-semibold shadow-sm">
+            <span>Grade Essay</span>
+            <span className="h-2.5 w-2.5 rounded-full bg-emerald-300" />
+          </button>
 
+          {/* Other items (non-functional for now) */}
+          <button className="w-full text-left rounded-2xl px-3 py-2.5 hover:bg-white/10 transition">
+            Upload PDF
+          </button>
+          <button className="w-full text-left rounded-2xl px-3 py-2.5 hover:bg-white/10 transition">
+            Saved Grades
+          </button>
+          <button className="w-full text-left rounded-2xl px-3 py-2.5 hover:bg-white/10 transition">
+            Rubric Builder
+          </button>
+          <button className="w-full text-left rounded-2xl px-3 py-2.5 hover:bg-white/10 transition">
+            Export &amp; Reports
+          </button>
+
+          <div className="mt-6">
+            <p className="text-[11px] uppercase tracking-widest text-indigo-100/80 mb-2">
+              Integrations
+            </p>
             <button
-              onClick={handleGrade}
-              disabled={grading}
-              className={`w-full md:w-auto px-6 py-2.5 rounded-full text-white font-semibold
-                ${grading ? 'bg-indigo-300 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700'}`}
+              onClick={handleGoogleLogin}
+              className="w-full mb-2 rounded-2xl bg-white text-indigo-700 text-xs font-semibold px-3 py-2 shadow hover:bg-indigo-50 transition flex items-center justify-between"
             >
-              {grading ? 'Grading…' : 'Grade Essay'}
+              <span>Login with Google</span>
+              <span className="h-2 w-2 rounded-full bg-emerald-400" />
+            </button>
+            <button
+              onClick={handleCanvasToken}
+              className="w-full rounded-2xl bg-indigo-400/60 text-white text-xs font-semibold px-3 py-2 shadow hover:bg-indigo-400 transition flex items-center justify-between"
+            >
+              <span>Connect Canvas</span>
+              <span className="h-2 w-2 rounded-full bg-sky-300" />
+            </button>
+          </div>
+        </nav>
+
+        <div className="px-4 py-3 border-t border-indigo-300/30 text-xs text-indigo-100">
+          <p className="font-semibold">Teacher Mode</p>
+          <p>Signed in locally</p>
+        </div>
+      </aside>
+
+      {/* MAIN AREA */}
+      <div className="flex-1 flex flex-col">
+        {/* HERO HEADER */}
+        <section className="w-full bg-gradient-to-br from-indigo-500 via-indigo-400 to-sky-400 text-white shadow-md">
+          {/* Mobile top bar (since sidebar is hidden on small screens) */}
+          <div className="flex md:hidden items-center justify-between px-4 py-3 bg-indigo-900/20">
+            <div className="flex items-center gap-2">
+              <div className="h-8 w-8 rounded-2xl bg-white/90 flex items-center justify-center overflow-hidden">
+                <img
+                  src="/EasyGradeLogo.png"
+                  alt="EasyGrade Logo"
+                  className="h-8 w-8 object-contain"
+                />
+              </div>
+              <span className="text-lg font-semibold">EasyGrade</span>
+            </div>
+            <button
+              onClick={handleGoogleLogin}
+              className="text-xs font-semibold px-3 py-1.5 rounded-full bg-white text-indigo-700 shadow"
+            >
+              Login
             </button>
           </div>
 
-          {/* Right column: PDF upload + results */}
-          <div className="space-y-4">
-            {/* PDF upload card */}
-            <div className="bg-white rounded-2xl shadow p-4">
-              <h2 className="text-sm font-semibold text-gray-800 mb-2">
-                Upload a PDF
-              </h2>
-              <p className="text-xs text-gray-500 mb-3">
-                Upload a PDF with a student essay. We’ll extract the text and place it in the essay box.
+          <div className="px-5 md:px-10 py-7 md:py-10 flex flex-col md:flex-row items-center md:items-start gap-8 max-w-6xl mx-auto">
+            {/* Hero text */}
+            <div className="flex-1 space-y-3 md:space-y-4">
+              <h1 className="text-3xl md:text-4xl lg:text-5xl font-extrabold leading-tight drop-shadow-sm">
+                Playful, instant grading for real classrooms.
+              </h1>
+              <p className="text-sm md:text-base text-indigo-50 max-w-xl">
+                Upload essays, extract text from PDFs, paste your own rubric, and
+                get structured AI feedback in seconds. Spend less time grading and
+                more time teaching.
               </p>
 
-              <input
-                type="file"
-                accept="application/pdf"
-                onChange={handlePdfSelect}
-                className="block w-full text-sm text-gray-700
-                           file:mr-4 file:py-2 file:px-4
-                           file:rounded-full file:border-0
-                           file:text-sm file:font-semibold
-                           file:bg-indigo-50 file:text-indigo-700
-                           hover:file:bg-indigo-100"
-              />
+              <div className="flex flex-wrap gap-3 pt-2">
+                <button
+                  onClick={handleGrade}
+                  className="px-5 py-2.5 rounded-full bg-white text-indigo-700 text-sm font-semibold shadow-md hover:bg-indigo-50 active:scale-[0.98] transition"
+                >
+                  Grade current essay
+                </button>
+                <button
+                  onClick={() => {
+                    const input = document.getElementById('pdf-input');
+                    if (input) input.click();
+                  }}
+                  className="px-5 py-2.5 rounded-full border border-white/70 bg-white/10 text-sm font-semibold text-white shadow hover:bg-white/15 active:scale-[0.98] transition"
+                >
+                  Upload PDF
+                </button>
+              </div>
 
-              <button
-                onClick={handlePdfExtract}
-                disabled={pdfLoading || !pdfFile}
-                className={`mt-3 w-full md:w-auto px-4 py-2 rounded-full text-white text-sm font-semibold
-                  ${pdfLoading || !pdfFile
-                    ? 'bg-indigo-300 cursor-not-allowed'
-                    : 'bg-indigo-600 hover:bg-indigo-700'}`}
-              >
-                {pdfLoading ? 'Extracting from PDF…' : 'Extract Text from PDF'}
-              </button>
-            </div>
-
-            {/* Grading result */}
-            <div className="bg-white rounded-2xl shadow p-4 min-h-[150px]">
-              <h2 className="text-sm font-semibold text-gray-800 mb-2">
-                Grading Result
-              </h2>
-
-              {!gradeResult && !grading && (
-                <p className="text-xs text-gray-500">
-                  After grading, the score and feedback will appear here.
-                </p>
-              )}
-
-              {grading && (
-                <p className="text-xs text-gray-500">
-                  Contacting the grading engine…
-                </p>
-              )}
-
-              {gradeResult && (
-                <div className="space-y-2 text-sm text-gray-800">
-                  {typeof gradeResult.score !== 'undefined' && (
-                    <p>
-                      <span className="font-semibold">Score:</span>{' '}
-                      {gradeResult.score}
-                    </p>
-                  )}
-                  {gradeResult.feedback && (
-                    <p>
-                      <span className="font-semibold">Feedback:</span>{' '}
-                      {gradeResult.feedback}
-                    </p>
-                  )}
-                  {Array.isArray(gradeResult.strengths) && (
-                    <div>
-                      <p className="font-semibold">Strengths:</p>
-                      <ul className="list-disc list-inside text-xs">
-                        {gradeResult.strengths.map((s, i) => (
-                          <li key={i}>{s}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                  {Array.isArray(gradeResult.weaknesses) && (
-                    <div>
-                      <p className="font-semibold">Weaknesses:</p>
-                      <ul className="list-disc list-inside text-xs">
-                        {gradeResult.weaknesses.map((w, i) => (
-                          <li key={i}>{w}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
+              {errorMsg && (
+                <div className="mt-2 rounded-2xl bg-indigo-900/30 border border-indigo-200/40 px-4 py-2 text-xs">
+                  {errorMsg}
                 </div>
               )}
             </div>
+
+            {/* Hero image card */}
+            <div className="flex-1 flex justify-center md:justify-end">
+              <div className="relative">
+                <div className="absolute -inset-4 bg-white/10 rounded-3xl blur-xl" />
+                <div className="relative bg-white/15 rounded-3xl p-4 border border-white/40 shadow-2xl flex items-center justify-center">
+                  <img
+                    src="/EasyGradeLogo.png"
+                    alt="EasyGrade Hero"
+                    className="max-h-40 md:max-h-56 object-contain drop-shadow-xl"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
-        </main>
+        </section>
+
+        {/* MAIN CONTENT */}
+        <div className="flex-1 px-4 md:px-8 py-6 md:py-8">
+          <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 items-start">
+            {/* LEFT COLUMN: Essay & Rubric */}
+            <div className="space-y-4 md:space-y-6">
+              {/* Essay card */}
+              <div className="bg-white rounded-3xl shadow-sm border border-slate-200/70 p-5 md:p-6">
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="text-base md:text-lg font-semibold text-slate-900">
+                    Student Essay
+                  </h2>
+                  <span className="text-[11px] uppercase tracking-wide text-slate-400">
+                    Step 1
+                  </span>
+                </div>
+                <textarea
+                  value={essayText}
+                  onChange={(e) => setEssayText(e.target.value)}
+                  rows={10}
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 text-sm text-slate-900 p-3 md:p-4 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 shadow-inner"
+                  placeholder="Paste an essay here, or extract text from a PDF on the right."
+                />
+              </div>
+
+              {/* Rubric card */}
+              <div className="bg-white rounded-3xl shadow-sm border border-slate-200/70 p-5 md:p-6">
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="text-base md:text-lg font-semibold text-slate-900">
+                    Rubric (optional)
+                  </h2>
+                  <span className="text-[11px] uppercase tracking-wide text-slate-400">
+                    Optional
+                  </span>
+                </div>
+                <textarea
+                  value={rubricText}
+                  onChange={(e) => setRubricText(e.target.value)}
+                  rows={7}
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 text-sm text-slate-900 p-3 md:p-4 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 shadow-inner"
+                  placeholder="Paste your rubric here (JSON, bullet points, or plain text)."
+                />
+              </div>
+
+              <div className="flex justify-end">
+                <button
+                  onClick={handleGrade}
+                  disabled={grading}
+                  className={`px-5 md:px-7 py-2.5 rounded-full text-sm font-semibold shadow-md transition
+                    ${
+                      grading
+                        ? 'bg-indigo-300 text-white cursor-not-allowed'
+                        : 'bg-indigo-600 text-white hover:bg-indigo-700 active:scale-[0.98]'
+                    }`}
+                >
+                  {grading ? 'Grading…' : 'Grade Essay'}
+                </button>
+              </div>
+            </div>
+
+            {/* RIGHT COLUMN: PDF Upload & Results */}
+            <div className="space-y-4 md:space-y-6">
+              {/* PDF upload card */}
+              <div className="bg-white rounded-3xl shadow-sm border border-slate-200/70 p-5 md:p-6">
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="text-base md:text-lg font-semibold text-slate-900">
+                    Upload a PDF
+                  </h2>
+                  <span className="text-[11px] uppercase tracking-wide text-sky-500 bg-sky-50 px-2 py-0.5 rounded-full">
+                    New
+                  </span>
+                </div>
+                <p className="text-xs md:text-sm text-slate-500 mb-3">
+                  Upload a PDF that contains a student essay. EasyGrade will extract
+                  the text and place it into the essay box on the left.
+                </p>
+
+                <label
+                  className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed 
+                             border-slate-300 rounded-3xl cursor-pointer bg-slate-50 hover:bg-slate-100 
+                             transition text-slate-600 text-sm"
+                >
+                  <span className="font-semibold mb-1">
+                    Click to choose a PDF
+                  </span>
+                  <span className="text-xs text-slate-400">
+                    or drag &amp; drop your file here
+                  </span>
+                  <input
+                    id="pdf-input"
+                    type="file"
+                    accept="application/pdf"
+                    onChange={handlePdfSelect}
+                    className="hidden"
+                  />
+                </label>
+
+                <button
+                  onClick={handlePdfExtract}
+                  disabled={pdfLoading || !pdfFile}
+                  className={`mt-4 w-full px-4 py-2.5 rounded-full text-sm font-semibold shadow-md transition
+                    ${
+                      pdfLoading || !pdfFile
+                        ? 'bg-slate-200 text-slate-500 cursor-not-allowed'
+                        : 'bg-indigo-500 text-white hover:bg-indigo-600 active:scale-[0.98]'
+                    }`}
+                >
+                  {pdfLoading ? 'Extracting text…' : 'Extract Text from PDF'}
+                </button>
+
+                {pdfFile && (
+                  <p className="mt-2 text-xs text-slate-500 truncate">
+                    Selected file: <span className="font-medium">{pdfFile.name}</span>
+                  </p>
+                )}
+              </div>
+
+              {/* Grading result card */}
+              <div className="bg-white rounded-3xl shadow-sm border border-slate-200/70 p-5 md:p-6 min-h-[180px]">
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="text-base md:text-lg font-semibold text-slate-900">
+                    Grading Result
+                  </h2>
+                  <span className="text-[11px] uppercase tracking-wide text-slate-400">
+                    Step 3
+                  </span>
+                </div>
+
+                {!gradeResult && !grading && (
+                  <p className="text-sm text-slate-500">
+                    After grading, the score and feedback will appear here.
+                  </p>
+                )}
+
+                {grading && (
+                  <p className="text-sm text-slate-500 animate-pulse">
+                    Contacting the grading engine…
+                  </p>
+                )}
+
+                {gradeResult && (
+                  <div className="space-y-3 text-sm text-slate-800">
+                    {typeof gradeResult.score !== 'undefined' && (
+                      <div className="bg-indigo-50 border border-indigo-100 rounded-2xl px-3 py-2">
+                        <p className="text-[11px] font-semibold text-indigo-700 uppercase tracking-wide">
+                          Score
+                        </p>
+                        <p className="text-2xl font-bold text-indigo-800 mt-1">
+                          {gradeResult.score}
+                        </p>
+                      </div>
+                    )}
+
+                    {gradeResult.feedback && (
+                      <div>
+                        <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1">
+                          Feedback
+                        </p>
+                        <p className="leading-relaxed text-sm">
+                          {gradeResult.feedback}
+                        </p>
+                      </div>
+                    )}
+
+                    {Array.isArray(gradeResult.strengths) && (
+                      <div>
+                        <p className="text-[11px] font-semibold text-emerald-600 uppercase tracking-wide mb-1">
+                          Strengths
+                        </p>
+                        <ul className="list-disc list-inside text-xs space-y-1">
+                          {gradeResult.strengths.map((s, i) => (
+                            <li key={i}>{s}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {Array.isArray(gradeResult.weaknesses) && (
+                      <div>
+                        <p className="text-[11px] font-semibold text-rose-600 uppercase tracking-wide mb-1">
+                          Weaknesses
+                        </p>
+                        <ul className="list-disc list-inside text-xs space-y-1">
+                          {gradeResult.weaknesses.map((w, i) => (
+                            <li key={i}>{w}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
