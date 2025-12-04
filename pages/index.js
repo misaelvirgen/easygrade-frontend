@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import { gradeAssignment, uploadPdf } from "../services/apiService";
+import { gradeAssignment, uploadPdf, uploadRubric, generateRubric } from "../services/apiService";
+
 
 export default function Home() {
   const [essayPrompt, setEssayPrompt] = useState("");
@@ -11,7 +13,9 @@ export default function Home() {
   const [pdfLoading, setPdfLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [gradeLevel, setGradeLevel] = useState("");
+  const [rubricFile, setRubricFile] = useState(null);
   const [rubricLoading, setRubricLoading] = useState(false);
+
 
 
   const handleGrade = async () => {
