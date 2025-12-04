@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { gradeAssignment, uploadPdf } from "../services/apiService";
 import { gradeAssignment, uploadPdf, uploadRubric, generateRubric } from "../services/apiService";
 
 
