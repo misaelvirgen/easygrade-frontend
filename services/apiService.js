@@ -2,9 +2,10 @@ import axios from 'axios';
 
 const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || '';
 
-export const gradeAssignment = async (text, rubric) => {
+export const gradeAssignment = async (prompt, text, rubric) => {
   const res = await axios.post(`${API_URL}/api/grade`, {
     student_name: "Demo",
+    assignment_prompt: prompt,
     assignment_text: text,
     rubric_json: rubric || "{}",
   });

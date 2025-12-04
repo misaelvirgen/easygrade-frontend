@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { gradeAssignment, uploadPdf } from "../services/apiService";
 
 export default function Home() {
+  const [essayPrompt, setEssayPrompt] = useState("");
   const [essayText, setEssayText] = useState("");
   const [rubricText, setRubricText] = useState("");
   const [gradeResult, setGradeResult] = useState(null);
@@ -20,7 +21,7 @@ export default function Home() {
     setGradeResult(null);
 
     try {
-      const data = await gradeAssignment(essayText, rubricText);
+      const data = await gradeAssignment(essayPrompt, essayText, rubricText);
       setGradeResult(data);
     } catch (err) {
       setErrorMsg(err?.message || "Something went wrong while grading.");
@@ -88,6 +89,17 @@ export default function Home() {
         {/* MAIN GRID */}
         <main className="eg-main-grid">
           {/* LEFT: ESSAY + RUBRIC + BUTTON */}
+          {/* --- Essay Prompt Section --- */}
+<div className="eg-card">
+  <label className="eg-label">Essay Prompt</label>
+  <textarea
+    className="eg-textarea"
+    placeholder="Enter the assignment prompt here..."
+    value={essayPrompt}
+    onChange={(e) => setEssayPrompt(e.target.value)}
+  />
+</div>
+
           <div className="eg-column">
             <section className="eg-card">
               <h2 className="eg-card-title">Student Essay</h2>
