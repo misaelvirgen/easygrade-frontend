@@ -200,20 +200,48 @@ export default function Home() {
             <section className="eg-card">
   <h2 className="eg-card-title">Rubric (Optional)</h2>
 
-  {/* ---------- FILE SELECTOR ---------- */}
-  <label className="eg-label">Upload Rubric (PDF, DOCX, JPG, PNG)</label>
+  {/* Grade Level */}
+  <label className="eg-label">Grade Level (required for generating a rubric)</label>
+  <select
+    className="eg-input"
+    value={gradeLevel}
+    onChange={(e) => setGradeLevel(e.target.value)}
+  >
+    <option value="">Select grade level…</option>
+    <option value="Elementary">Elementary</option>
+    <option value="Middle School">Middle School</option>
+    <option value="High School">High School</option>
+    <option value="College">College</option>
+  </select>
+
+  {/* Rubric Textarea */}
+  <textarea
+    rows={6}
+    value={rubricText}
+    onChange={(e) => setRubricText(e.target.value)}
+    placeholder="Paste rubric, upload one, or generate one…"
+    className="eg-textarea"
+  />
+
+  {/* ------- Upload Rubric ------- */}
+  <label className="eg-label" style={{ marginTop: "16px" }}>
+    Upload Rubric (PDF, DOCX, JPG, PNG)
+  </label>
+
   <input
     type="file"
     accept=".pdf,.docx,.jpg,.jpeg,.png"
     onChange={(e) => setRubricFile(e.target.files?.[0] || null)}
     className="eg-file-input"
   />
+
   {rubricFile && (
     <p className="eg-file-name">{rubricFile.name}</p>
   )}
 
-  {/* ---------- BUTTON ROW (Upload / Generate / Saved) ---------- */}
+  {/* ------- BUTTON ROW ------- */}
   <div className="eg-rubric-button-row">
+    {/* Upload */}
     <button
       type="button"
       className="eg-secondary-button"
@@ -223,6 +251,7 @@ export default function Home() {
       {rubricLoading ? "Uploading…" : "Upload Rubric"}
     </button>
 
+    {/* Generate */}
     <button
       type="button"
       disabled={
@@ -238,51 +267,46 @@ export default function Home() {
       {rubricLoading ? "Generating…" : "Generate Rubric"}
     </button>
 
+    {/* Saved Rubric */}
     <button
       type="button"
       onClick={() => setShowSavedRubricModal(true)}
       className="eg-secondary-button"
+      disabled={rubricUploaded}
     >
       Use Saved Rubric
     </button>
   </div>
 
-  {/* ---------- GRADE LEVEL ---------- */}
-  <label className="eg-label">Grade Level</label>
-  <select
-    className="eg-input"
-    value={gradeLevel}
-    onChange={(e) => setGradeLevel(e.target.value)}
-  >
-    <option value="">Select grade level…</option>
-    <option value="Elementary">Elementary</option>
-    <option value="Middle School">Middle School</option>
-    <option value="High School">High School</option>
-    <option value="College">College</option>
-  </select>
-
-  {/* ---------- RUBRIC TEXTAREA ---------- */}
-  <textarea
-    rows={6}
-    value={rubricText}
-    onChange={(e) => setRubricText(e.target.value)}
-    placeholder="Paste rubric or generate it…"
-    className="eg-textarea"
-  />
-
   {/* Clear Rubric */}
   <button
+    type="button"
     className="eg-link-button"
     onClick={() => {
-      setRubricText("");
       setRubricFile(null);
-      setUsingSavedRubric(false);
       setRubricUploaded(false);
+      setUsingSavedRubric(false);
+      setRubricText("");
     }}
   >
-    Clear rubric
+    Clear Rubric
   </button>
+
+  {/* Clear saved rubric */}
+  {usingSavedRubric && (
+    <button
+      type="button"
+      className="eg-link-button"
+      onClick={() => {
+        setUsingSavedRubric(false);
+        setRubricText("");
+      }}
+    >
+      Clear Saved Rubric
+    </button>
+  )}
 </section>
+
 
 
             {/* GRADE BUTTON */}
