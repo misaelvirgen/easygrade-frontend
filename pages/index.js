@@ -24,23 +24,17 @@ export default function Home() {
   const [rubricLoading, setRubricLoading] = useState(false);
   const [rubricUploaded, setRubricUploaded] = useState(false);
 
-  // Mock saved rubrics (until teacher login is implemented)
   const [savedRubrics] = useState([
-    {
-      title: "5-Paragraph Essay Rubric",
-      text: "Introduction: ...\nBody: ...\nConclusion: ...",
-    },
-    {
-      title: "Argumentative Writing Rubric",
-      text: "Claim: ...\nEvidence: ...\nReasoning: ...",
-    },
-    {
-      title: "Narrative Writing Rubric",
-      text: "Organization: ...\nVoice: ...\nDetails: ...",
-    },
+    { title: "5-Paragraph Essay Rubric", text: "Intro...\nBody...\nConclusion..." },
+    { title: "Argumentative Writing Rubric", text: "Claim...\nEvidence..." },
+    { title: "Narrative Writing Rubric", text: "Voice...\nStructure..." },
   ]);
 
   const [usingSavedRubric, setUsingSavedRubric] = useState(false);
+
+  // NEW MODAL STATE
+  const [showSavedRubricModal, setShowSavedRubricModal] = useState(false);
+  const [savedRubricView, setSavedRubricView] = useState("list"); // list or grid
 
   // -----------------------------
   // GRADE ESSAY
@@ -74,7 +68,7 @@ export default function Home() {
   // -----------------------------
   const handleGenerateRubric = async () => {
     if (!essayPrompt.trim()) {
-      setErrorMsg("Please enter an assignment prompt before generating a rubric.");
+      setErrorMsg("Assignment prompt required.");
       return;
     }
     if (!gradeLevel) {
@@ -90,7 +84,7 @@ export default function Home() {
       setRubricText(generated.rubric || "");
       setRubricUploaded(false);
       setUsingSavedRubric(false);
-    } catch (err) {
+    } catch {
       setErrorMsg("Failed to generate rubric.");
     } finally {
       setRubricLoading(false);
@@ -109,7 +103,7 @@ export default function Home() {
     try {
       const data = await uploadPdf(pdfFile);
       setEssayText(data?.text || "");
-    } catch (err) {
+    } catch {
       setErrorMsg("Failed to extract text from PDF.");
     } finally {
       setPdfLoading(false);
@@ -129,8 +123,8 @@ export default function Home() {
       const data = await uploadRubric(rubricFile);
       setRubricText(data?.text || "");
       setRubricUploaded(true);
-      setUsingSavedRubric(false); // IMPORTANT FIX
-    } catch (err) {
+      setUsingSavedRubric(false);
+    } catch {
       setErrorMsg("Failed to extract text from rubric file.");
     } finally {
       setRubricLoading(false);
@@ -138,19 +132,18 @@ export default function Home() {
   };
 
   // -----------------------------
-  // LOAD SAVED RUBRIC
+  // LOAD SELECTED SAVED RUBRIC
   // -----------------------------
-  const handleLoadSavedRubric = (e) => {
-    const index = e.target.value;
-    if (index === "") return;
-
-    const selected = savedRubrics[index];
-
-    setRubricText(selected.text);
+  const handleChooseSavedRubric = (rubric) => {
+    setRubricText(rubric.text);
     setRubricUploaded(false);
     setUsingSavedRubric(true);
+    setShowSavedRubricModal(false);
   };
 
+  // -----------------------------
+  // BUILD UI
+  // -----------------------------
   return (
     <div className="eg-root">
       <div className="eg-shell">
@@ -169,7 +162,7 @@ export default function Home() {
 
         {/* HERO */}
         <section className="eg-hero">
-          <img src="/EasyGradeLogo.png" alt="EasyGrade" className="eg-hero-logo" />
+          <img src="/EasyGradeLogo.png" className="eg-hero-logo" />
           <h1 className="eg-hero-title">Grade Essays Instantly.</h1>
           <p className="eg-hero-subtitle">
             Upload student work, apply custom rubrics, and get high-quality AI feedback in seconds.
@@ -185,7 +178,7 @@ export default function Home() {
             <label className="eg-label">Essay Prompt</label>
             <textarea
               className="eg-textarea"
-              placeholder="Enter the assignment prompt here..."
+              placeholder="Enter the assignment prompt..."
               value={essayPrompt}
               onChange={(e) => setEssayPrompt(e.target.value)}
             />
@@ -200,7 +193,7 @@ export default function Home() {
                 rows={9}
                 value={essayText}
                 onChange={(e) => setEssayText(e.target.value)}
-                placeholder="Paste essay text here..."
+                placeholder="Paste essay text here…"
                 className="eg-textarea"
               />
             </section>
@@ -209,27 +202,35 @@ export default function Home() {
             <section className="eg-card">
               <h2 className="eg-card-title">Rubric (Optional)</h2>
 
-              {/* SAVED RUBRIC DROPDOWN */}
-              <label className="eg-label">Use a Saved Rubric</label>
-              <select
-                className="eg-input"
-                onChange={handleLoadSavedRubric}
-                disabled={rubricUploaded}
-              >
-                <option value="">Select a saved rubric…</option>
-                {savedRubrics.map((r, i) => (
-                  <option key={i} value={i}>
-                    {r.title}
-                  </option>
-                ))}
-              </select>
+              {/* BUTTONS: Generate + Use Saved Rubric */}
+              <div style={{ display: "flex", gap: "12px", marginBottom: "12px" }}>
+                <button
+                  type="button"
+                  disabled={
+                    rubricUploaded ||
+                    usingSavedRubric ||
+                    !essayPrompt ||
+                    !gradeLevel ||
+                    rubricLoading
+                  }
+                  onClick={handleGenerateRubric}
+                  className="eg-secondary-button"
+                >
+                  {rubricLoading ? "Generating…" : "Generate Rubric"}
+                </button>
 
-              {usingSavedRubric && (
-                <p className="eg-helper-text">Loaded a saved rubric. You may edit it below.</p>
-              )}
+                <button
+                  type="button"
+                  className="eg-secondary-button"
+                  onClick={() => setShowSavedRubricModal(true)}
+                  disabled={rubricUploaded}
+                >
+                  Use Saved Rubric
+                </button>
+              </div>
 
-              {/* GRADE LEVEL */}
-              <label className="eg-label">Grade Level (required for rubric generation)</label>
+              {/* Grade Level */}
+              <label className="eg-label">Grade Level</label>
               <select
                 className="eg-input"
                 value={gradeLevel}
@@ -242,19 +243,20 @@ export default function Home() {
                 <option value="College">College</option>
               </select>
 
-              {/* RUBRIC TEXTAREA */}
+              {/* Rubric Text */}
               <textarea
                 rows={6}
                 value={rubricText}
                 onChange={(e) => setRubricText(e.target.value)}
-                placeholder="Paste rubric here…"
+                placeholder="Paste rubric or generate it…"
                 className="eg-textarea"
               />
 
-              {/* UPLOAD RUBRIC */}
+              {/* Upload Rubric */}
               <label className="eg-label" style={{ marginTop: "12px" }}>
                 Upload Rubric (PDF, DOCX, JPG, PNG)
               </label>
+
               <input
                 type="file"
                 accept=".pdf,.docx,.jpg,.jpeg,.png"
@@ -268,37 +270,8 @@ export default function Home() {
                 disabled={!rubricFile || rubricLoading}
                 className="eg-secondary-button"
               >
-                {rubricLoading ? "Extracting…" : "Extract Text"}
+                {rubricLoading ? "Uploading…" : "Upload Rubric"}
               </button>
-
-              {rubricFile && (
-                <p className="eg-file-name">{rubricFile.name}</p>
-              )}
-
-              {/* AI GENERATE RUBRIC */}
-              <button
-                type="button"
-                disabled={
-                  rubricUploaded ||
-                  usingSavedRubric ||
-                  !essayPrompt ||
-                  !gradeLevel ||
-                  rubricLoading
-                }
-                onClick={handleGenerateRubric}
-                className="eg-secondary-button"
-              >
-                {rubricLoading ? "Generating…" : "Generate Rubric"}
-              </button>
-
-              {rubricUploaded ? (
-                <p className="eg-helper-text">Rubric extracted. You may edit it below.</p>
-              ) : (
-                <p className="eg-helper-text">
-                  Option A: Upload a rubric.  
-                  Option B: Enter an assignment prompt and select a grade level to generate one.
-                </p>
-              )}
 
               {/* CLEAR BUTTONS */}
               <button
@@ -338,12 +311,12 @@ export default function Home() {
             >
               {grading ? "Grading…" : "Grade Essay"}
             </button>
+
           </div>
 
           {/* RIGHT COLUMN */}
           <div className="eg-column">
-
-            {/* PDF UPLOAD */}
+            {/* PDF Upload */}
             <section className="eg-card">
               <h2 className="eg-card-title">Upload PDF</h2>
 
@@ -389,9 +362,72 @@ export default function Home() {
                 </div>
               )}
             </section>
-
           </div>
         </main>
+
+        {/* --------------------------------------------- */}
+        {/* SAVED RUBRIC POPUP MODAL */}
+        {/* --------------------------------------------- */}
+        {showSavedRubricModal && (
+          <div className="eg-modal-overlay">
+            <div className="eg-modal">
+
+              <h2>Select a Saved Rubric</h2>
+
+              {/* VIEW TOGGLE */}
+              <div style={{ display: "flex", gap: "8px", marginBottom: "12px" }}>
+                <button
+                  className="eg-secondary-button"
+                  onClick={() => setSavedRubricView("list")}
+                >
+                  List View
+                </button>
+                <button
+                  className="eg-secondary-button"
+                  onClick={() => setSavedRubricView("grid")}
+                >
+                  Grid View
+                </button>
+              </div>
+
+              {/* RUBRIC DISPLAY MODES */}
+              {savedRubricView === "list" ? (
+                <div>
+                  {savedRubrics.map((r, idx) => (
+                    <div
+                      key={idx}
+                      className="eg-saved-list-item"
+                      onClick={() => handleChooseSavedRubric(r)}
+                    >
+                      {r.title}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="eg-saved-grid">
+                  {savedRubrics.map((r, idx) => (
+                    <div
+                      key={idx}
+                      className="eg-saved-grid-item"
+                      onClick={() => handleChooseSavedRubric(r)}
+                    >
+                      📘
+                      <p>{r.title}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <button
+                className="eg-link-button"
+                onClick={() => setShowSavedRubricModal(false)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   );
