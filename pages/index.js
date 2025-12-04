@@ -178,16 +178,27 @@ export default function Home() {
           <div className="eg-column">
 
             {/* STUDENT ESSAY */}
-            <section className="eg-card eg-card--medium">
-              <h2 className="eg-card-title">Student Essay</h2>
-              <textarea
-                rows={9}
-                value={essayText}
-                onChange={(e) => setEssayText(e.target.value)}
-                className="eg-textarea"
-                placeholder="Paste essay text here…"
-              />
-            </section>
+          <section className="eg-card eg-card--medium">
+  <h2 className="eg-card-title">Student Essay</h2>
+
+  <textarea
+    rows={9}
+    value={essayText}
+    onChange={(e) => setEssayText(e.target.value)}
+    className="eg-textarea"
+    placeholder="Paste essay text here…"
+  />
+
+  <button
+    type="button"
+    className="eg-link-button"
+    onClick={() => setEssayText("")}
+    style={{ marginTop: "6px" }}
+  >
+    Clear Essay
+  </button>
+</section>
+
 
             {/* UPLOAD PDF */}
             <section className="eg-card eg-card--small">
