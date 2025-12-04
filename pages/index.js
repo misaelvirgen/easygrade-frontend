@@ -31,7 +31,6 @@ export default function Home() {
 
   const handlePdfExtract = async () => {
     if (!pdfFile) return;
-
     setPdfLoading(true);
     setErrorMsg("");
 
@@ -46,150 +45,180 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-blue-100">
-
-      {/* TOP NAV */}
-      <nav className="w-full bg-white shadow-sm border-b border-gray-200 px-8 py-4 flex justify-between items-center">
-        <div className="flex items-center gap-3">
-          <img
-            src="/EasyGradeLogo.png"
-            alt="EasyGrade Logo"
-            className="w-10 h-auto object-contain"
-          />
-          <h1 className="text-xl font-bold text-gray-800">EasyGrade</h1>
-        </div>
-
-        <div className="flex items-center gap-6 text-sm font-medium text-gray-700">
-          <button className="hover:text-indigo-600">Grade Essay</button>
-          <button className="hover:text-indigo-600">Upload PDF</button>
-          <button className="hover:text-indigo-600">Rubric Builder</button>
-          <button className="hover:text-indigo-600">Reports</button>
-
-          <button className="px-4 py-2 bg-indigo-600 text-white rounded-full font-semibold hover:bg-indigo-700">
-            Login
-          </button>
-        </div>
-      </nav>
-
-      {/* HERO SECTION */}
-      <header className="max-w-5xl mx-auto text-center mt-16 px-6">
-        <div className="flex flex-col items-center gap-6">
-          <img
-            src="/EasyGradeLogo.png"
-            alt="EasyGrade Logo Large"
-            className="w-[250px] h-auto drop-shadow-md"
-          />
-          <h2 className="text-4xl font-bold text-gray-900">
-            Grade Essays Instantly.
-          </h2>
-          <p className="text-lg text-gray-600 max-w-xl">
-            Upload student work, apply custom rubrics, and get high-quality AI feedback in seconds.
-          </p>
-        </div>
-      </header>
-
-      {/* MAIN CONTENT GRID */}
-      <main className="max-w-6xl mx-auto px-6 mt-16 mb-20 grid grid-cols-1 lg:grid-cols-2 gap-10">
-
-        {/* LEFT — ESSAY + RUBRIC */}
-        <div className="space-y-10">
-
-          {/* STUDENT ESSAY */}
-          <div className="bg-white p-8 rounded-3xl shadow-lg border border-gray-100">
-            <h3 className="text-xl font-semibold mb-4 text-gray-900">
-              Student Essay
-            </h3>
-            <textarea
-              rows={10}
-              value={essayText}
-              onChange={(e) => setEssayText(e.target.value)}
-              placeholder="Paste essay text here..."
-              className="w-full p-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-blue-100 flex items-center justify-center px-4 py-10">
+      {/* MAIN APP CARD */}
+      <div className="w-full max-w-6xl bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden flex flex-col">
+        {/* TOP NAV INSIDE CARD */}
+        <nav className="w-full px-8 py-4 border-b border-gray-100 flex items-center justify-between bg-white">
+          <div className="flex items-center gap-3">
+            <img
+              src="/EasyGradeLogo.png"
+              alt="EasyGrade Logo"
+              className="w-12 h-auto object-contain"
             />
+            <span className="text-xl font-bold text-gray-800">EasyGrade</span>
           </div>
 
-          {/* RUBRIC */}
-          <div className="bg-white p-8 rounded-3xl shadow-lg border border-gray-100">
-            <h3 className="text-xl font-semibold mb-4 text-gray-900">
-              Rubric (Optional)
-            </h3>
-            <textarea
-              rows={6}
-              value={rubricText}
-              onChange={(e) => setRubricText(e.target.value)}
-              placeholder="Paste rubric here..."
-              className="w-full p-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-            />
-          </div>
-
-          {/* GRADE BUTTON */}
-          <button
-            onClick={handleGrade}
-            disabled={grading}
-            className="w-full px-6 py-4 text-lg bg-indigo-600 text-white rounded-full font-semibold shadow hover:bg-indigo-700"
-          >
-            {grading ? "Grading…" : "Grade Essay"}
-          </button>
-        </div>
-
-        {/* RIGHT — PDF + RESULTS */}
-        <div className="space-y-10">
-
-          {/* PDF UPLOAD */}
-          <div className="bg-white p-8 rounded-3xl shadow-lg border border-gray-100">
-            <h3 className="text-xl font-semibold mb-4 text-gray-900">
-              Upload PDF
-            </h3>
-
-            <input
-              type="file"
-              accept="application/pdf"
-              onChange={(e) => setPdfFile(e.target.files[0])}
-              className="w-full mb-4 text-sm"
-            />
-
+          <div className="flex items-center gap-6 text-sm font-medium text-gray-600">
             <button
-              onClick={handlePdfExtract}
-              disabled={!pdfFile || pdfLoading}
-              className="px-4 py-2 bg-indigo-500 text-white rounded-full font-semibold hover:bg-indigo-600"
+              className="bg-transparent border-0 text-gray-600 hover:text-indigo-600"
+              style={{ border: "none" }}
             >
-              {pdfLoading ? "Extracting..." : "Extract Text"}
+              Grade Essay
+            </button>
+            <button
+              className="bg-transparent border-0 text-gray-600 hover:text-indigo-600"
+              style={{ border: "none" }}
+            >
+              Upload PDF
+            </button>
+            <button
+              className="bg-transparent border-0 text-gray-600 hover:text-indigo-600"
+              style={{ border: "none" }}
+            >
+              Rubric Builder
+            </button>
+            <button
+              className="bg-transparent border-0 text-gray-600 hover:text-indigo-600"
+              style={{ border: "none" }}
+            >
+              Reports
             </button>
 
-            {pdfFile && (
-              <p className="text-xs text-gray-500 mt-2">{pdfFile.name}</p>
-            )}
+            <button className="px-5 py-2.5 bg-indigo-600 text-white rounded-full font-semibold text-sm hover:bg-indigo-700 shadow-sm">
+              Login
+            </button>
           </div>
+        </nav>
 
-          {/* RESULTS */}
-          <div className="bg-white p-8 rounded-3xl shadow-lg border border-gray-100 min-h-[200px]">
-            <h3 className="text-xl font-semibold mb-4 text-gray-900">
-              Grading Results
-            </h3>
-
-            {!gradeResult && (
-              <p className="text-gray-500 text-sm">Results will appear here after grading.</p>
+        {/* HERO + CONTENT */}
+        <div className="px-8 py-10 lg:px-12 lg:py-12 space-y-10">
+          {/* HERO SECTION */}
+          <header className="flex flex-col items-center text-center space-y-6">
+            <img
+              src="/EasyGradeLogo.png"
+              alt="EasyGrade Hero Logo"
+              className="w-[500px] max-w-full h-auto drop-shadow-md"
+            />
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
+              Grade Essays Instantly.
+            </h2>
+            <p className="text-base md:text-lg text-gray-600 max-w-2xl">
+              Upload student work, apply custom rubrics, and get high-quality AI
+              feedback in seconds. Perfect for busy teachers and real classrooms.
+            </p>
+            {errorMsg && (
+              <div className="text-sm text-red-600 bg-red-50 border border-red-100 px-4 py-2 rounded-full">
+                {errorMsg}
+              </div>
             )}
+          </header>
 
-            {gradeResult && (
-              <div className="space-y-6">
-                {gradeResult.score && (
-                  <p className="text-3xl font-bold text-indigo-600">
-                    Score: {gradeResult.score}
+          {/* MAIN GRID */}
+          <main className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
+            {/* LEFT COLUMN: ESSAY + RUBRIC + BUTTON */}
+            <div className="space-y-8">
+              {/* ESSAY */}
+              <section className="bg-gray-50 rounded-2xl border border-gray-100 p-6 md:p-7">
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                  Student Essay
+                </h3>
+                <textarea
+                  rows={10}
+                  value={essayText}
+                  onChange={(e) => setEssayText(e.target.value)}
+                  placeholder="Paste essay text here…"
+                  className="w-full p-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm md:text-base"
+                />
+              </section>
+
+              {/* RUBRIC */}
+              <section className="bg-gray-50 rounded-2xl border border-gray-100 p-6 md:p-7">
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                  Rubric (Optional)
+                </h3>
+                <textarea
+                  rows={6}
+                  value={rubricText}
+                  onChange={(e) => setRubricText(e.target.value)}
+                  placeholder="Paste rubric here…"
+                  className="w-full p-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm md:text-base"
+                />
+              </section>
+
+              {/* GRADE BUTTON */}
+              <button
+                onClick={handleGrade}
+                disabled={grading}
+                className="w-full px-8 py-4 bg-indigo-600 text-white rounded-full text-lg font-semibold shadow-md hover:bg-indigo-700 disabled:bg-indigo-300"
+              >
+                {grading ? "Grading…" : "Grade Essay"}
+              </button>
+            </div>
+
+            {/* RIGHT COLUMN: PDF + RESULTS */}
+            <div className="space-y-8">
+              {/* PDF UPLOAD */}
+              <section className="bg-gray-50 rounded-2xl border border-gray-100 p-6 md:p-7">
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                  Upload PDF
+                </h3>
+
+                <input
+                  type="file"
+                  accept="application/pdf"
+                  onChange={(e) => setPdfFile(e.target.files?.[0] || null)}
+                  className="w-full text-sm text-gray-700"
+                />
+
+                <button
+                  onClick={handlePdfExtract}
+                  disabled={!pdfFile || pdfLoading}
+                  className="mt-4 px-6 py-2.5 bg-indigo-500 text-white rounded-full text-sm font-semibold hover:bg-indigo-600 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                >
+                  {pdfLoading ? "Extracting…" : "Extract Text"}
+                </button>
+
+                {pdfFile && (
+                  <p className="mt-2 text-xs text-gray-500 truncate">
+                    {pdfFile.name}
+                  </p>
+                )}
+              </section>
+
+              {/* RESULTS */}
+              <section className="bg-gray-50 rounded-2xl border border-gray-100 p-6 md:p-7 min-h-[200px]">
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                  Grading Results
+                </h3>
+
+                {!gradeResult && (
+                  <p className="text-sm text-gray-500">
+                    Results will appear here after grading.
                   </p>
                 )}
 
-                {gradeResult.feedback && (
-                  <div>
-                    <h4 className="font-semibold mb-2">Feedback</h4>
-                    <p className="text-gray-700">{gradeResult.feedback}</p>
+                {gradeResult && (
+                  <div className="space-y-5 text-sm md:text-base">
+                    {typeof gradeResult.score !== "undefined" && (
+                      <p className="text-3xl font-bold text-indigo-600">
+                        Score: {gradeResult.score}
+                      </p>
+                    )}
+
+                    {gradeResult.feedback && (
+                      <div>
+                        <h4 className="font-semibold mb-1">Feedback</h4>
+                        <p className="text-gray-700">{gradeResult.feedback}</p>
+                      </div>
+                    )}
                   </div>
                 )}
-              </div>
-            )}
-          </div>
+              </section>
+            </div>
+          </main>
         </div>
-      </main>
+      </div>
     </div>
   );
 }
