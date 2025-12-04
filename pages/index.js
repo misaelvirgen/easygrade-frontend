@@ -15,7 +15,6 @@ export default function Home() {
 
   const [pdfFile, setPdfFile] = useState(null);
   const [pdfLoading, setPdfLoading] = useState(false);
-
   const [errorMsg, setErrorMsg] = useState("");
 
   const [gradeLevel, setGradeLevel] = useState("");
@@ -24,6 +23,7 @@ export default function Home() {
   const [rubricLoading, setRubricLoading] = useState(false);
   const [rubricUploaded, setRubricUploaded] = useState(false);
 
+  // Saved Rubrics (mock)
   const [savedRubrics] = useState([
     { title: "5-Paragraph Essay Rubric", text: "Intro...\nBody...\nConclusion..." },
     { title: "Argumentative Writing Rubric", text: "Claim...\nEvidence..." },
@@ -31,10 +31,8 @@ export default function Home() {
   ]);
 
   const [usingSavedRubric, setUsingSavedRubric] = useState(false);
-
-  // NEW MODAL STATE
   const [showSavedRubricModal, setShowSavedRubricModal] = useState(false);
-  const [savedRubricView, setSavedRubricView] = useState("list"); // list or grid
+  const [savedRubricView, setSavedRubricView] = useState("list");
 
   // -----------------------------
   // GRADE ESSAY
@@ -64,7 +62,7 @@ export default function Home() {
   };
 
   // -----------------------------
-  // AI GENERATE RUBRIC
+  // GENERATE RUBRIC
   // -----------------------------
   const handleGenerateRubric = async () => {
     if (!essayPrompt.trim()) {
@@ -92,11 +90,10 @@ export default function Home() {
   };
 
   // -----------------------------
-  // PDF → ESSAY EXTRACT
+  // PDF -> TEXT
   // -----------------------------
   const handlePdfExtract = async () => {
     if (!pdfFile) return;
-
     setPdfLoading(true);
     setErrorMsg("");
 
@@ -111,7 +108,7 @@ export default function Home() {
   };
 
   // -----------------------------
-  // UPLOAD RUBRIC → TEXT EXTRACT
+  // UPLOAD RUBRIC FILE
   // -----------------------------
   const handleRubricExtract = async () => {
     if (!rubricFile) return;
@@ -132,17 +129,17 @@ export default function Home() {
   };
 
   // -----------------------------
-  // LOAD SELECTED SAVED RUBRIC
+  // SELECT SAVED RUBRIC
   // -----------------------------
   const handleChooseSavedRubric = (rubric) => {
     setRubricText(rubric.text);
-    setRubricUploaded(false);
     setUsingSavedRubric(true);
+    setRubricUploaded(false);
     setShowSavedRubricModal(false);
   };
 
   // -----------------------------
-  // BUILD UI
+  // UI
   // -----------------------------
   return (
     <div className="eg-root">
@@ -184,6 +181,7 @@ export default function Home() {
             />
           </div>
 
+          {/* LEFT COLUMN */}
           <div className="eg-column">
 
             {/* STUDENT ESSAY */}
@@ -202,8 +200,17 @@ export default function Home() {
             <section className="eg-card">
               <h2 className="eg-card-title">Rubric (Optional)</h2>
 
-              {/* BUTTONS: Generate + Use Saved Rubric */}
-              <div style={{ display: "flex", gap: "12px", marginBottom: "12px" }}>
+              {/* 3 BUTTON ROW */}
+              <div className="eg-rubric-button-row">
+                <button
+                  type="button"
+                  className="eg-secondary-button"
+                  disabled={!rubricFile || rubricLoading}
+                  onClick={handleRubricExtract}
+                >
+                  {rubricLoading ? "Uploading…" : "Upload Rubric"}
+                </button>
+
                 <button
                   type="button"
                   disabled={
@@ -223,11 +230,15 @@ export default function Home() {
                   type="button"
                   className="eg-secondary-button"
                   onClick={() => setShowSavedRubricModal(true)}
-                  disabled={rubricUploaded}
                 >
                   Use Saved Rubric
                 </button>
               </div>
+
+              {/* FILE NAME */}
+              {rubricFile && (
+                <p className="eg-file-name">{rubricFile.name}</p>
+              )}
 
               {/* Grade Level */}
               <label className="eg-label">Grade Level</label>
@@ -243,7 +254,7 @@ export default function Home() {
                 <option value="College">College</option>
               </select>
 
-              {/* Rubric Text */}
+              {/* RUBRIC TEXT */}
               <textarea
                 rows={6}
                 value={rubricText}
@@ -252,54 +263,18 @@ export default function Home() {
                 className="eg-textarea"
               />
 
-              {/* Upload Rubric */}
-              <label className="eg-label" style={{ marginTop: "12px" }}>
-                Upload Rubric (PDF, DOCX, JPG, PNG)
-              </label>
-
-              <input
-                type="file"
-                accept=".pdf,.docx,.jpg,.jpeg,.png"
-                onChange={(e) => setRubricFile(e.target.files?.[0] || null)}
-                className="eg-file-input"
-              />
-
+              {/* CLEAR */}
               <button
-                type="button"
-                onClick={handleRubricExtract}
-                disabled={!rubricFile || rubricLoading}
-                className="eg-secondary-button"
-              >
-                {rubricLoading ? "Uploading…" : "Upload Rubric"}
-              </button>
-
-              {/* CLEAR BUTTONS */}
-              <button
-                type="button"
                 className="eg-link-button"
                 onClick={() => {
-                  setRubricFile(null);
-                  setRubricUploaded(false);
-                  setUsingSavedRubric(false);
                   setRubricText("");
+                  setRubricFile(null);
+                  setUsingSavedRubric(false);
+                  setRubricUploaded(false);
                 }}
               >
-                Clear uploaded rubric
+                Clear rubric
               </button>
-
-              {usingSavedRubric && (
-                <button
-                  type="button"
-                  className="eg-link-button"
-                  onClick={() => {
-                    setUsingSavedRubric(false);
-                    setRubricUploaded(false);
-                    setRubricText("");
-                  }}
-                >
-                  Clear saved rubric
-                </button>
-              )}
             </section>
 
             {/* GRADE BUTTON */}
@@ -316,10 +291,10 @@ export default function Home() {
 
           {/* RIGHT COLUMN */}
           <div className="eg-column">
-            {/* PDF Upload */}
+
+            {/* PDF UPLOAD */}
             <section className="eg-card">
               <h2 className="eg-card-title">Upload PDF</h2>
-
               <input
                 type="file"
                 accept="application/pdf"
@@ -362,20 +337,21 @@ export default function Home() {
                 </div>
               )}
             </section>
+
           </div>
         </main>
 
-        {/* --------------------------------------------- */}
-        {/* SAVED RUBRIC POPUP MODAL */}
-        {/* --------------------------------------------- */}
+        {/* -------------------------- */}
+        {/* SAVED RUBRIC MODAL */}
+        {/* -------------------------- */}
         {showSavedRubricModal && (
           <div className="eg-modal-overlay">
             <div className="eg-modal">
 
               <h2>Select a Saved Rubric</h2>
 
-              {/* VIEW TOGGLE */}
-              <div style={{ display: "flex", gap: "8px", marginBottom: "12px" }}>
+              {/* Toggle View */}
+              <div className="eg-modal-toggle-row">
                 <button
                   className="eg-secondary-button"
                   onClick={() => setSavedRubricView("list")}
@@ -390,7 +366,7 @@ export default function Home() {
                 </button>
               </div>
 
-              {/* RUBRIC DISPLAY MODES */}
+              {/* Modal Contents */}
               {savedRubricView === "list" ? (
                 <div>
                   {savedRubrics.map((r, idx) => (
@@ -424,6 +400,7 @@ export default function Home() {
               >
                 Close
               </button>
+
             </div>
           </div>
         )}
