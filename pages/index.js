@@ -7,6 +7,9 @@ import {
 } from "../services/apiService";
 
 export default function Home() {
+  // ---------------------------------------------
+  // STATE
+  // ---------------------------------------------
   const [essayPrompt, setEssayPrompt] = useState("");
   const [essayText, setEssayText] = useState("");
   const [rubricText, setRubricText] = useState("");
@@ -16,13 +19,12 @@ export default function Home() {
   const [pdfFile, setPdfFile] = useState(null);
   const [pdfLoading, setPdfLoading] = useState(false);
 
-  const [errorMsg, setErrorMsg] = useState("");
-
   const [gradeLevel, setGradeLevel] = useState("");
-
   const [rubricFile, setRubricFile] = useState(null);
   const [rubricLoading, setRubricLoading] = useState(false);
   const [rubricUploaded, setRubricUploaded] = useState(false);
+
+  const [errorMsg, setErrorMsg] = useState("");
 
   const [savedRubrics] = useState([
     { title: "5-Paragraph Essay Rubric", text: "Intro...\nBody...\nConclusion..." },
@@ -36,7 +38,7 @@ export default function Home() {
   const [savedRubricView, setSavedRubricView] = useState("list");
 
   // ---------------------------------------------
-  // GRADING LOGIC
+  // GRADING
   // ---------------------------------------------
   const handleGrade = async () => {
     if (!essayPrompt.trim()) {
@@ -53,8 +55,8 @@ export default function Home() {
     setGradeResult(null);
 
     try {
-      const data = await gradeAssignment(essayPrompt, essayText, rubricText);
-      setGradeResult(data);
+      const result = await gradeAssignment(essayPrompt, essayText, rubricText);
+      setGradeResult(result);
     } catch {
       setErrorMsg("Something went wrong while grading.");
     } finally {
@@ -62,6 +64,49 @@ export default function Home() {
     }
   };
 
+  // ---------------------------------------------
+  // PDF EXTRACTION
+  // ---------------------------------------------
+  const handlePdfExtract = async () => {
+    if (!pdfFile) return;
+
+    setPdfLoading(true);
+    setErrorMsg("");
+
+    try {
+      const result = await uploadPdf(pdfFile);
+      setEssayText(result.text || "");
+    } catch {
+      setErrorMsg("Failed to extract text from PDF.");
+    } finally {
+      setPdfLoading(false);
+    }
+  };
+
+  // ---------------------------------------------
+  // RUBRIC EXTRACTION (UPLOAD)
+  // ---------------------------------------------
+  const handleRubricExtract = async () => {
+    if (!rubricFile) return;
+
+    setRubricLoading(true);
+    setErrorMsg("");
+
+    try {
+      const result = await uploadRubric(rubricFile);
+      setRubricText(result.text || "");
+      setRubricUploaded(true);
+      setUsingSavedRubric(false);
+    } catch {
+      setErrorMsg("Failed to extract rubric text.");
+    } finally {
+      setRubricLoading(false);
+    }
+  };
+
+  // ---------------------------------------------
+  // GENERATE RUBRIC
+  // ---------------------------------------------
   const handleGenerateRubric = async () => {
     if (!essayPrompt.trim()) {
       setErrorMsg("Assignment prompt required.");
@@ -87,40 +132,9 @@ export default function Home() {
     }
   };
 
-  const handlePdfExtract = async () => {
-    if (!pdfFile) return;
-
-    setPdfLoading(true);
-    setErrorMsg("");
-
-    try {
-      const data = await uploadPdf(pdfFile);
-      setEssayText(data?.text || "");
-    } catch {
-      setErrorMsg("Failed to extract text from PDF.");
-    } finally {
-      setPdfLoading(false);
-    }
-  };
-
-  const handleRubricExtract = async () => {
-    if (!rubricFile) return;
-
-    setRubricLoading(true);
-    setErrorMsg("");
-
-    try {
-      const data = await uploadRubric(rubricFile);
-      setRubricText(data?.text || "");
-      setRubricUploaded(true);
-      setUsingSavedRubric(false);
-    } catch {
-      setErrorMsg("Failed to extract rubric text.");
-    } finally {
-      setRubricLoading(false);
-    }
-  };
-
+  // ---------------------------------------------
+  // LOAD SAVED RUBRIC
+  // ---------------------------------------------
   const handleChooseSavedRubric = (rubric) => {
     setRubricText(rubric.text);
     setUsingSavedRubric(true);
@@ -129,13 +143,13 @@ export default function Home() {
   };
 
   // ---------------------------------------------
-  // UI STARTS HERE
+  // UI
   // ---------------------------------------------
   return (
     <div className="eg-root">
       <div className="eg-shell">
 
-        {/* TOP BAR */}
+        {/* HEADER */}
         <header className="eg-header">
           <div className="eg-brand">EasyGrade</div>
           <nav className="eg-nav">
@@ -157,10 +171,10 @@ export default function Home() {
           {errorMsg && <p className="eg-error-banner">{errorMsg}</p>}
         </section>
 
-        {/* NEW MAIN GRID — UPDATED LAYOUT */}
+        {/* MAIN GRID */}
         <main className="eg-main-grid">
 
-          {/* ---------------- LEFT COLUMN ---------------- */}
+          {/* LEFT COLUMN */}
           <div className="eg-column">
 
             {/* STUDENT ESSAY */}
@@ -192,24 +206,14 @@ export default function Home() {
                 type="button"
                 onClick={handlePdfExtract}
                 disabled={!pdfFile || pdfLoading}
-                className="eg-secondary-button"
+                className="eg-secondary-button eg-button-inline"
               >
                 {pdfLoading ? "Extracting…" : "Extract Text"}
               </button>
             </section>
-
-            {/* GRADE ESSAY BUTTON */}
-            <button
-              type="button"
-              className="eg-primary-button"
-              disabled={grading}
-              onClick={handleGrade}
-            >
-              {grading ? "Grading…" : "Grade Essay"}
-            </button>
           </div>
 
-          {/* ---------------- RIGHT COLUMN ---------------- */}
+          {/* RIGHT COLUMN */}
           <div className="eg-column">
 
             {/* ESSAY PROMPT */}
@@ -227,6 +231,7 @@ export default function Home() {
             <section className="eg-card">
               <h2 className="eg-card-title">Rubric (Optional)</h2>
 
+              {/* Grade Level */}
               <label className="eg-label">Grade Level</label>
               <select
                 className="eg-input"
@@ -240,15 +245,16 @@ export default function Home() {
                 <option value="College">College</option>
               </select>
 
+              {/* Rubric Text */}
               <textarea
                 rows={6}
                 className="eg-textarea"
-                placeholder="Paste rubric, upload one, or generate one…"
                 value={rubricText}
+                placeholder="Paste rubric, upload one, or generate one…"
                 onChange={(e) => setRubricText(e.target.value)}
               />
 
-              {/* Upload Rubric */}
+              {/* Upload Label */}
               <label className="eg-label" style={{ marginTop: 12 }}>
                 Upload Rubric (PDF, DOCX, JPG, PNG)
               </label>
@@ -262,10 +268,10 @@ export default function Home() {
 
               {rubricFile && <p className="eg-file-name">{rubricFile.name}</p>}
 
-              {/* Button Row */}
+              {/* BUTTON ROW */}
               <div className="eg-rubric-button-row">
                 <button
-                  className="eg-secondary-button"
+                  className="eg-secondary-button eg-button-inline"
                   disabled={!rubricFile || rubricLoading}
                   onClick={handleRubricExtract}
                 >
@@ -273,7 +279,7 @@ export default function Home() {
                 </button>
 
                 <button
-                  className="eg-secondary-button"
+                  className="eg-secondary-button eg-button-inline"
                   disabled={
                     rubricUploaded ||
                     usingSavedRubric ||
@@ -287,7 +293,7 @@ export default function Home() {
                 </button>
 
                 <button
-                  className="eg-secondary-button"
+                  className="eg-secondary-button eg-button-inline"
                   onClick={() => setShowSavedRubricModal(true)}
                 >
                   Use Saved Rubric
@@ -309,7 +315,17 @@ export default function Home() {
           </div>
         </main>
 
-        {/* ---------------- FULL-WIDTH RESULTS ROW ---------------- */}
+        {/* FULL-WIDTH GRADE BUTTON */}
+        <button
+          type="button"
+          className="eg-primary-button eg-grade-row"
+          disabled={grading}
+          onClick={handleGrade}
+        >
+          {grading ? "Grading…" : "Grade Essay"}
+        </button>
+
+        {/* FULL-WIDTH RESULTS */}
         <section className="eg-card eg-results-card" style={{ gridColumn: "1 / -1" }}>
           <h2 className="eg-card-title">Grading Results</h2>
 

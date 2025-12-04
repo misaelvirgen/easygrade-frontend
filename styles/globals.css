@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ---------- EasyGrade layout styles ---------- */
+/* ---------- ROOT ---------- */
 
 .eg-root {
   min-height: 100vh;
@@ -14,6 +14,8 @@
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   color: #111827;
 }
+
+/* ---------- WRAPPER ---------- */
 
 .eg-shell {
   width: 100%;
@@ -28,7 +30,7 @@
   box-shadow: 0 18px 45px rgba(15, 23, 42, 0.16);
 }
 
-/* HEADER */
+/* ---------- HEADER ---------- */
 
 .eg-header {
   display: flex;
@@ -53,10 +55,7 @@
   font-size: 0.9rem;
   cursor: pointer;
 }
-
-.eg-nav-link:hover {
-  color: #4f46e5;
-}
+.eg-nav-link:hover { color: #4f46e5; }
 
 .eg-nav-login {
   padding: 10px 18px;
@@ -68,34 +67,29 @@
   cursor: pointer;
 }
 
-/* HERO */
+/* ---------- HERO ---------- */
 
-.eg-hero {
-  text-align: center;
-}
+.eg-hero { text-align: center; }
+.eg-hero-logo { max-width: 500px; width: 100%; }
 
-.eg-hero-logo {
-  max-width: 500px;
-  width: 100%;
-}
-
-.eg-error-banner {
-  background: #fee2e2;
-  color: #b91c1c;
-  padding: 6px 12px;
-  border-radius: 999px;
-}
-
-/* GRID */
+/* ---------- GRID ---------- */
 
 .eg-main-grid {
-  align-items: start;     /* prevents stretching */
   display: grid;
   grid-template-columns: 1.5fr 1.2fr;
   gap: 24px;
+  align-items: start;
 }
 
-/* CARDS */
+/* ---------- COLUMNS ---------- */
+
+.eg-column {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* ---------- CARDS ---------- */
 
 .eg-card {
   background: #f9fafb;
@@ -104,34 +98,18 @@
   padding: 18px 20px;
   display: flex;
   flex-direction: column;
-  gap: 12px;               /* new! creates consistent spacing inside cards */
+  gap: 12px;
 }
 
 .eg-card--medium {
-  min-height: 260px;     /* Student Essay + Essay Prompt cards match height */
-  display: flex;
-  flex-direction: column;
+  min-height: 240px;
 }
 
 .eg-card--small {
-  min-height: 160px;     /* Upload PDF matches Rubric bottom visually */
+  min-height: 160px;
 }
 
-.eg-card-title {
-  font-size: 1rem;
-  font-weight: 600;
-  margin-bottom: 10px;
-}
-
-.eg-column {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-  height: 100%;           /* let columns stretch */
-  flex: 1;
-}
-
-/* FIELDS */
+/* ---------- FIELDS ---------- */
 
 .eg-textarea {
   width: 100%;
@@ -140,13 +118,18 @@
   border-radius: 14px;
   border: 1px solid #d1d5db;
 }
-
 .eg-textarea:focus {
   border-color: #4f46e5;
   box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.25);
 }
 
-/* BUTTONS */
+.eg-input {
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid #d1d5db;
+}
+
+/* ---------- BUTTONS ---------- */
 
 .eg-primary-button {
   padding: 14px 20px;
@@ -158,15 +141,30 @@
   cursor: pointer;
 }
 
+/* Full-width grade row */
+.eg-grade-row {
+  width: 100%;
+  margin-top: -5px;
+  margin-bottom: -5px;
+}
+
+/* Secondary button */
 .eg-secondary-button {
   padding: 10px 18px;
   border-radius: 999px;
-  border: none;
   background: #6366f1;
   color: white;
+  border: none;
   cursor: pointer;
 }
 
+/* Inline secondary buttons (non-full-width) */
+.eg-button-inline {
+  width: auto !important;
+  align-self: flex-start;
+}
+
+/* Link button */
 .eg-link-button {
   background: none;
   border: none;
@@ -175,16 +173,14 @@
   margin-top: 8px;
 }
 
-/* RUBRIC BUTTON ROW */
+/* ---------- RUBRIC BUTTON ROW ---------- */
 
 .eg-rubric-button-row {
   display: flex;
-  flex-wrap: wrap;
   gap: 12px;
-  margin-bottom: 12px;
 }
 
-/* FILE */
+/* ---------- FILE ---------- */
 
 .eg-file-input {
   width: 100%;
@@ -193,22 +189,30 @@
 .eg-file-name {
   font-size: 0.85rem;
   color: #6b7280;
-  margin-top: 6px;
 }
 
-/* RESULTS */
+/* ---------- RESULTS ---------- */
 
 .eg-results-card {
   min-height: 160px;
 }
 
-.eg-muted-text {
-  color: #6b7280;
+.eg-muted-text { color: #6b7280; }
+
+.eg-results-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
-/* ------------------------------------------ */
-/* MODAL — NOW GLOBAL (works on desktop too!) */
-/* ------------------------------------------ */
+.eg-score {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: #4f46e5;
+}
+.eg-score span { font-weight: 700; }
+
+/* ---------- MODAL ---------- */
 
 .eg-modal-overlay {
   position: fixed;
@@ -231,7 +235,6 @@
   max-width: 90%;
   max-height: 80%;
   overflow-y: auto;
-  box-shadow: 0 4px 30px rgba(0,0,0,0.2);
   animation: egFadeIn 0.2s ease-out;
 }
 
@@ -268,13 +271,7 @@
   cursor: pointer;
 }
 
-/* MOBILE */
-@media (max-width: 900px) {
-  .eg-main-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
+/* Icon button */
 .eg-icon-button {
   width: 44px;
   height: 44px;
@@ -288,18 +285,17 @@
   justify-content: center;
   transition: background 0.15s ease, transform 0.15s ease;
 }
-
-.eg-icon-button:hover {
-  background: #4f46e5;
-  transform: translateY(-2px);
-}
-
-.eg-icon-button:active {
-  transform: scale(0.96);
-}
+.eg-icon-button:hover { background: #4f46e5; transform: translateY(-2px); }
+.eg-icon-button:active { transform: scale(0.96); }
 
 .material-symbols-rounded {
   font-size: 24px;
-  line-height: 1;
 }
 
+/* ---------- MOBILE ---------- */
+
+@media (max-width: 900px) {
+  .eg-main-grid {
+    grid-template-columns: 1fr;
+  }
+}
