@@ -72,6 +72,22 @@ export default function Home() {
     }
   };
 
+const handleRubricExtract = async () => {
+  if (!rubricFile) return;
+
+  setRubricLoading(true);
+  setErrorMsg("");
+
+  try {
+    const data = await uploadRubric(rubricFile);
+    setRubricText(data?.text || "");
+  } catch (err) {
+    setErrorMsg("Failed to extract text from rubric file.");
+  } finally {
+    setRubricLoading(false);
+  }
+};
+
   return (
     <div className="eg-root">
       <div className="eg-shell">
@@ -162,6 +178,33 @@ export default function Home() {
     placeholder="Paste rubric here…"
     className="eg-textarea"
   />
+
+{/* Rubric File Upload */}
+<label className="eg-label" style={{ marginTop: "12px" }}>
+  Upload Rubric (PDF, DOCX, JPG, PNG)
+</label>
+
+<input
+  type="file"
+  accept=".pdf,.docx,.jpg,.jpeg,.png"
+  onChange={(e) => setRubricFile(e.target.files?.[0] || null)}
+  className="eg-file-input"
+/>
+
+<button
+  type="button"
+  onClick={handleRubricExtract}
+  disabled={!rubricFile || rubricLoading}
+  className="eg-secondary-button"
+>
+  {rubricLoading ? "Extracting…" : "Extract Text"}
+</button>
+
+{rubricFile && (
+  <p className="eg-file-name" title={rubricFile.name}>
+    {rubricFile.name}
+  </p>
+)}
 
   {/* Generate Rubric Button */}
   <button

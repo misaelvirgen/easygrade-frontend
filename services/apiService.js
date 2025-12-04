@@ -22,6 +22,17 @@ export const uploadPdf = async (file) => {
   return res.data;
 };
 
+export const uploadRubric = async (file) => {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const res = await axios.post(`${API_URL}/api/upload/rubric`, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+
+  return res.data;
+};
+
 export const generateRubric = async (prompt, gradeLevel) => {
   const res = await axios.post(`${API_URL}/api/rubric/generate`, {
     assignment_prompt: prompt,
