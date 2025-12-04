@@ -10,6 +10,9 @@ export default function Home() {
   const [pdfFile, setPdfFile] = useState(null);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [gradeLevel, setGradeLevel] = useState("");
+  const [rubricLoading, setRubricLoading] = useState(false);
+
 
   const handleGrade = async () => {
     if (!essayText.trim()) {
@@ -29,6 +32,29 @@ export default function Home() {
       setGrading(false);
     }
   };
+
+  const handleGenerateRubric = async () => {
+  if (!essayPrompt.trim()) {
+    setErrorMsg("Please enter an assignment prompt before generating a rubric.");
+    return;
+  }
+  if (!gradeLevel) {
+    setErrorMsg("Please select a grade level.");
+    return;
+  }
+
+  setErrorMsg("");
+  setRubricLoading(true);
+
+  try {
+    const generated = await generateRubric(essayPrompt, gradeLevel);
+    setRubricText(generated.rubric || "");
+  } catch (err) {
+    setErrorMsg("Failed to generate rubric.");
+  } finally {
+    setRubricLoading(false);
+  }
+};
 
   const handlePdfExtract = async () => {
     if (!pdfFile) return;
@@ -113,15 +139,41 @@ export default function Home() {
             </section>
 
             <section className="eg-card">
-              <h2 className="eg-card-title">Rubric (Optional)</h2>
-              <textarea
-                rows={6}
-                value={rubricText}
-                onChange={(e) => setRubricText(e.target.value)}
-                placeholder="Paste rubric here…"
-                className="eg-textarea"
-              />
-            </section>
+  <h2 className="eg-card-title">Rubric (Optional)</h2>
+
+  {/* Grade Level Selector */}
+  <label className="eg-label">Grade Level (required for rubric generation)</label>
+  <select
+    className="eg-input"
+    value={gradeLevel}
+    onChange={(e) => setGradeLevel(e.target.value)}
+  >
+    <option value="">Select grade level…</option>
+    <option value="Elementary">Elementary</option>
+    <option value="Middle School">Middle School</option>
+    <option value="High School">High School</option>
+    <option value="College">College</option>
+  </select>
+
+  <textarea
+    rows={6}
+    value={rubricText}
+    onChange={(e) => setRubricText(e.target.value)}
+    placeholder="Paste rubric here…"
+    className="eg-textarea"
+  />
+
+  {/* Generate Rubric Button */}
+  <button
+    type="button"
+    disabled={!essayPrompt || !gradeLevel || rubricLoading}
+    onClick={handleGenerateRubric}
+    className="eg-secondary-button"
+  >
+    {rubricLoading ? "Generating…" : "Generate Rubric"}
+  </button>
+</section>
+
 
             <button
               type="button"

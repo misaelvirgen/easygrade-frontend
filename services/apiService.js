@@ -21,3 +21,11 @@ export const uploadPdf = async (file) => {
   });
   return res.data;
 };
+
+export const generateRubric = async (prompt, gradeLevel) => {
+  const res = await axios.post(`${API_URL}/api/rubric/generate`, {
+    assignment_prompt: prompt,
+    grade_level: gradeLevel
+  });
+  return res.data;
+};
