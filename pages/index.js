@@ -164,7 +164,7 @@ export default function Home() {
           <div className="eg-column">
 
             {/* STUDENT ESSAY */}
-            <section className="eg-card">
+            <section className="eg-card eg-card--medium">
               <h2 className="eg-card-title">Student Essay</h2>
               <textarea
                 rows={9}
@@ -176,7 +176,7 @@ export default function Home() {
             </section>
 
             {/* UPLOAD PDF */}
-            <section className="eg-card">
+            <section className="eg-card eg-card--small">
               <h2 className="eg-card-title">Upload PDF</h2>
 
               <input
@@ -213,7 +213,7 @@ export default function Home() {
           <div className="eg-column">
 
             {/* ESSAY PROMPT */}
-            <section className="eg-card">
+            <section className="eg-card eg-card--medium">
               <h2 className="eg-card-title">Essay Prompt</h2>
               <textarea
                 className="eg-textarea"
