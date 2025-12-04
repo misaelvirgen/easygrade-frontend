@@ -24,6 +24,24 @@ export default function Home() {
   const [rubricLoading, setRubricLoading] = useState(false);
   const [rubricUploaded, setRubricUploaded] = useState(false);
 
+  // Mock saved rubrics (until teacher login is implemented)
+  const [savedRubrics] = useState([
+    {
+      title: "5-Paragraph Essay Rubric",
+      text: "Introduction: ...\nBody: ...\nConclusion: ...",
+    },
+    {
+      title: "Argumentative Writing Rubric",
+      text: "Claim: ...\nEvidence: ...\nReasoning: ...",
+    },
+    {
+      title: "Narrative Writing Rubric",
+      text: "Organization: ...\nVoice: ...\nDetails: ...",
+    },
+  ]);
+
+  const [usingSavedRubric, setUsingSavedRubric] = useState(false);
+
   // -----------------------------
   // GRADE ESSAY
   // -----------------------------
@@ -70,7 +88,8 @@ export default function Home() {
     try {
       const generated = await generateRubric(essayPrompt, gradeLevel);
       setRubricText(generated.rubric || "");
-      setRubricUploaded(false); // AI overwrites extracted rubric
+      setRubricUploaded(false);
+      setUsingSavedRubric(false);
     } catch (err) {
       setErrorMsg("Failed to generate rubric.");
     } finally {
@@ -110,6 +129,7 @@ export default function Home() {
       const data = await uploadRubric(rubricFile);
       setRubricText(data?.text || "");
       setRubricUploaded(true);
+      setUsingSavedRubric(false); // IMPORTANT FIX
     } catch (err) {
       setErrorMsg("Failed to extract text from rubric file.");
     } finally {
@@ -117,18 +137,33 @@ export default function Home() {
     }
   };
 
+  // -----------------------------
+  // LOAD SAVED RUBRIC
+  // -----------------------------
+  const handleLoadSavedRubric = (e) => {
+    const index = e.target.value;
+    if (index === "") return;
+
+    const selected = savedRubrics[index];
+
+    setRubricText(selected.text);
+    setRubricUploaded(false);
+    setUsingSavedRubric(true);
+  };
+
   return (
     <div className="eg-root">
       <div className="eg-shell">
+
         {/* TOP BAR */}
         <header className="eg-header">
           <div className="eg-brand">EasyGrade</div>
           <nav className="eg-nav">
-            <button type="button" className="eg-nav-link">Grade Essay</button>
-            <button type="button" className="eg-nav-link">Upload PDF</button>
-            <button type="button" className="eg-nav-link">Rubric Builder</button>
-            <button type="button" className="eg-nav-link">Reports</button>
-            <button type="button" className="eg-nav-login">Login</button>
+            <button className="eg-nav-link">Grade Essay</button>
+            <button className="eg-nav-link">Upload PDF</button>
+            <button className="eg-nav-link">Rubric Builder</button>
+            <button className="eg-nav-link">Reports</button>
+            <button className="eg-nav-login">Login</button>
           </nav>
         </header>
 
@@ -157,6 +192,7 @@ export default function Home() {
           </div>
 
           <div className="eg-column">
+
             {/* STUDENT ESSAY */}
             <section className="eg-card">
               <h2 className="eg-card-title">Student Essay</h2>
@@ -164,7 +200,7 @@ export default function Home() {
                 rows={9}
                 value={essayText}
                 onChange={(e) => setEssayText(e.target.value)}
-                placeholder="Paste essay text here…"
+                placeholder="Paste essay text here..."
                 className="eg-textarea"
               />
             </section>
@@ -173,7 +209,26 @@ export default function Home() {
             <section className="eg-card">
               <h2 className="eg-card-title">Rubric (Optional)</h2>
 
-              {/* Grade Level */}
+              {/* SAVED RUBRIC DROPDOWN */}
+              <label className="eg-label">Use a Saved Rubric</label>
+              <select
+                className="eg-input"
+                onChange={handleLoadSavedRubric}
+                disabled={rubricUploaded}
+              >
+                <option value="">Select a saved rubric…</option>
+                {savedRubrics.map((r, i) => (
+                  <option key={i} value={i}>
+                    {r.title}
+                  </option>
+                ))}
+              </select>
+
+              {usingSavedRubric && (
+                <p className="eg-helper-text">Loaded a saved rubric. You may edit it below.</p>
+              )}
+
+              {/* GRADE LEVEL */}
               <label className="eg-label">Grade Level (required for rubric generation)</label>
               <select
                 className="eg-input"
@@ -187,7 +242,7 @@ export default function Home() {
                 <option value="College">College</option>
               </select>
 
-              {/* Rubric Text */}
+              {/* RUBRIC TEXTAREA */}
               <textarea
                 rows={6}
                 value={rubricText}
@@ -196,11 +251,10 @@ export default function Home() {
                 className="eg-textarea"
               />
 
-              {/* Upload Rubric */}
+              {/* UPLOAD RUBRIC */}
               <label className="eg-label" style={{ marginTop: "12px" }}>
                 Upload Rubric (PDF, DOCX, JPG, PNG)
               </label>
-
               <input
                 type="file"
                 accept=".pdf,.docx,.jpg,.jpeg,.png"
@@ -218,15 +272,19 @@ export default function Home() {
               </button>
 
               {rubricFile && (
-                <p className="eg-file-name" title={rubricFile.name}>
-                  {rubricFile.name}
-                </p>
+                <p className="eg-file-name">{rubricFile.name}</p>
               )}
 
-              {/* AI Generate Rubric */}
+              {/* AI GENERATE RUBRIC */}
               <button
                 type="button"
-                disabled={rubricUploaded || !essayPrompt || !gradeLevel || rubricLoading}
+                disabled={
+                  rubricUploaded ||
+                  usingSavedRubric ||
+                  !essayPrompt ||
+                  !gradeLevel ||
+                  rubricLoading
+                }
                 onClick={handleGenerateRubric}
                 className="eg-secondary-button"
               >
@@ -234,9 +292,7 @@ export default function Home() {
               </button>
 
               {rubricUploaded ? (
-                <p className="eg-helper-text">
-                  Rubric extracted. You may edit it below.
-                </p>
+                <p className="eg-helper-text">Rubric extracted. You may edit it below.</p>
               ) : (
                 <p className="eg-helper-text">
                   Option A: Upload a rubric.  
@@ -244,18 +300,33 @@ export default function Home() {
                 </p>
               )}
 
-              {/* Clear Uploaded Rubric */}
+              {/* CLEAR BUTTONS */}
               <button
                 type="button"
                 className="eg-link-button"
                 onClick={() => {
                   setRubricFile(null);
                   setRubricUploaded(false);
+                  setUsingSavedRubric(false);
                   setRubricText("");
                 }}
               >
                 Clear uploaded rubric
               </button>
+
+              {usingSavedRubric && (
+                <button
+                  type="button"
+                  className="eg-link-button"
+                  onClick={() => {
+                    setUsingSavedRubric(false);
+                    setRubricUploaded(false);
+                    setRubricText("");
+                  }}
+                >
+                  Clear saved rubric
+                </button>
+              )}
             </section>
 
             {/* GRADE BUTTON */}
@@ -271,15 +342,18 @@ export default function Home() {
 
           {/* RIGHT COLUMN */}
           <div className="eg-column">
-            {/* PDF Upload */}
+
+            {/* PDF UPLOAD */}
             <section className="eg-card">
               <h2 className="eg-card-title">Upload PDF</h2>
+
               <input
                 type="file"
                 accept="application/pdf"
                 onChange={(e) => setPdfFile(e.target.files?.[0] || null)}
                 className="eg-file-input"
               />
+
               <button
                 type="button"
                 onClick={handlePdfExtract}
@@ -289,24 +363,16 @@ export default function Home() {
                 {pdfLoading ? "Extracting…" : "Extract Text"}
               </button>
 
-              {pdfFile && (
-                <p className="eg-file-name" title={pdfFile.name}>
-                  {pdfFile.name}
-                </p>
-              )}
+              {pdfFile && <p className="eg-file-name">{pdfFile.name}</p>}
             </section>
 
             {/* RESULTS */}
             <section className="eg-card eg-results-card">
               <h2 className="eg-card-title">Grading Results</h2>
 
-              {!gradeResult && (
-                <p className="eg-muted-text">
-                  Results will appear here after grading.
-                </p>
-              )}
-
-              {gradeResult && (
+              {!gradeResult ? (
+                <p className="eg-muted-text">Results will appear here after grading.</p>
+              ) : (
                 <div className="eg-results-body">
                   {typeof gradeResult.score !== "undefined" && (
                     <p className="eg-score">
@@ -323,6 +389,7 @@ export default function Home() {
                 </div>
               )}
             </section>
+
           </div>
         </main>
       </div>
