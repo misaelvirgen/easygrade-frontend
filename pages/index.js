@@ -198,84 +198,92 @@ export default function Home() {
 
             {/* RUBRIC SECTION */}
             <section className="eg-card">
-              <h2 className="eg-card-title">Rubric (Optional)</h2>
+  <h2 className="eg-card-title">Rubric (Optional)</h2>
 
-              {/* 3 BUTTON ROW */}
-              <div className="eg-rubric-button-row">
-                <button
-                  type="button"
-                  className="eg-secondary-button"
-                  disabled={!rubricFile || rubricLoading}
-                  onClick={handleRubricExtract}
-                >
-                  {rubricLoading ? "Uploading…" : "Upload Rubric"}
-                </button>
+  {/* ---------- FILE SELECTOR ---------- */}
+  <label className="eg-label">Upload Rubric (PDF, DOCX, JPG, PNG)</label>
+  <input
+    type="file"
+    accept=".pdf,.docx,.jpg,.jpeg,.png"
+    onChange={(e) => setRubricFile(e.target.files?.[0] || null)}
+    className="eg-file-input"
+  />
+  {rubricFile && (
+    <p className="eg-file-name">{rubricFile.name}</p>
+  )}
 
-                <button
-                  type="button"
-                  disabled={
-                    rubricUploaded ||
-                    usingSavedRubric ||
-                    !essayPrompt ||
-                    !gradeLevel ||
-                    rubricLoading
-                  }
-                  onClick={handleGenerateRubric}
-                  className="eg-secondary-button"
-                >
-                  {rubricLoading ? "Generating…" : "Generate Rubric"}
-                </button>
+  {/* ---------- BUTTON ROW (Upload / Generate / Saved) ---------- */}
+  <div className="eg-rubric-button-row">
+    <button
+      type="button"
+      className="eg-secondary-button"
+      disabled={!rubricFile || rubricLoading}
+      onClick={handleRubricExtract}
+    >
+      {rubricLoading ? "Uploading…" : "Upload Rubric"}
+    </button>
 
-                <button
-                  type="button"
-                  className="eg-secondary-button"
-                  onClick={() => setShowSavedRubricModal(true)}
-                >
-                  Use Saved Rubric
-                </button>
-              </div>
+    <button
+      type="button"
+      disabled={
+        rubricUploaded ||
+        usingSavedRubric ||
+        !essayPrompt ||
+        !gradeLevel ||
+        rubricLoading
+      }
+      onClick={handleGenerateRubric}
+      className="eg-secondary-button"
+    >
+      {rubricLoading ? "Generating…" : "Generate Rubric"}
+    </button>
 
-              {/* FILE NAME */}
-              {rubricFile && (
-                <p className="eg-file-name">{rubricFile.name}</p>
-              )}
+    <button
+      type="button"
+      onClick={() => setShowSavedRubricModal(true)}
+      className="eg-secondary-button"
+    >
+      Use Saved Rubric
+    </button>
+  </div>
 
-              {/* Grade Level */}
-              <label className="eg-label">Grade Level</label>
-              <select
-                className="eg-input"
-                value={gradeLevel}
-                onChange={(e) => setGradeLevel(e.target.value)}
-              >
-                <option value="">Select grade level…</option>
-                <option value="Elementary">Elementary</option>
-                <option value="Middle School">Middle School</option>
-                <option value="High School">High School</option>
-                <option value="College">College</option>
-              </select>
+  {/* ---------- GRADE LEVEL ---------- */}
+  <label className="eg-label">Grade Level</label>
+  <select
+    className="eg-input"
+    value={gradeLevel}
+    onChange={(e) => setGradeLevel(e.target.value)}
+  >
+    <option value="">Select grade level…</option>
+    <option value="Elementary">Elementary</option>
+    <option value="Middle School">Middle School</option>
+    <option value="High School">High School</option>
+    <option value="College">College</option>
+  </select>
 
-              {/* RUBRIC TEXT */}
-              <textarea
-                rows={6}
-                value={rubricText}
-                onChange={(e) => setRubricText(e.target.value)}
-                placeholder="Paste rubric or generate it…"
-                className="eg-textarea"
-              />
+  {/* ---------- RUBRIC TEXTAREA ---------- */}
+  <textarea
+    rows={6}
+    value={rubricText}
+    onChange={(e) => setRubricText(e.target.value)}
+    placeholder="Paste rubric or generate it…"
+    className="eg-textarea"
+  />
 
-              {/* CLEAR */}
-              <button
-                className="eg-link-button"
-                onClick={() => {
-                  setRubricText("");
-                  setRubricFile(null);
-                  setUsingSavedRubric(false);
-                  setRubricUploaded(false);
-                }}
-              >
-                Clear rubric
-              </button>
-            </section>
+  {/* Clear Rubric */}
+  <button
+    className="eg-link-button"
+    onClick={() => {
+      setRubricText("");
+      setRubricFile(null);
+      setUsingSavedRubric(false);
+      setRubricUploaded(false);
+    }}
+  >
+    Clear rubric
+  </button>
+</section>
+
 
             {/* GRADE BUTTON */}
             <button
@@ -351,20 +359,21 @@ export default function Home() {
               <h2>Select a Saved Rubric</h2>
 
               {/* Toggle View */}
-              <div className="eg-modal-toggle-row">
-                <button
-                  className="eg-secondary-button"
-                  onClick={() => setSavedRubricView("list")}
-                >
-                  List View
-                </button>
-                <button
-                  className="eg-secondary-button"
-                  onClick={() => setSavedRubricView("grid")}
-                >
-                  Grid View
-                </button>
-              </div>
+          <div className="eg-modal-toggle-row">
+  <button
+    className="eg-icon-button"
+    onClick={() => setSavedRubricView("list")}
+  >
+    <span className="material-symbols-rounded">view_list</span>
+  </button>
+
+  <button
+    className="eg-icon-button"
+    onClick={() => setSavedRubricView("grid")}
+  >
+    <span className="material-symbols-rounded">grid_view</span>
+  </button>
+</div>
 
               {/* Modal Contents */}
               {savedRubricView === "list" ? (
