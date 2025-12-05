@@ -3,48 +3,57 @@ import NextAuth from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import EmailProvider from "next-auth/providers/email";
 import { SupabaseAdapter } from "@auth/supabase-adapter";
+import { Resend } from "resend";
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export const authOptions = {
+  // --- Supabase Adapter (stores users, sessions, etc.) ---
   adapter: SupabaseAdapter({
     url: process.env.SUPABASE_URL,
     secret: process.env.SUPABASE_SERVICE_ROLE_KEY,
   }),
 
+  // --- Authentication Providers ---
   providers: [
-    // GOOGLE → no onboarding
+    // Google OAuth
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     }),
 
-    // EMAIL → requires onboarding
+    // Email Magic Link via Resend
     EmailProvider({
-      server: process.env.EMAIL_SERVER,
-      from: process.env.EMAIL_FROM,
+      sendVerificationRequest: async ({ identifier: email, url }) => {
+        await resend.emails.send({
+          from: process.env.EMAIL_FROM, // e.g. "EasyGrade <no-reply@easygrade.ai>"
+          to: email,
+          subject: "Your EasyGrade Login Link",
+          html: `
+            <p>Click below to sign in:</p>
+            <p><a href="${url}">Sign in to EasyGrade</a></p>
+            <p>This link expires in 10 minutes.</p>
+          `,
+        });
+      },
     }),
   ],
 
+  // --- Required Secrets ---
   secret: process.env.NEXTAUTH_SECRET,
 
+  // --- Custom Pages ---
   pages: {
-    signIn: "/login",
+    signIn: "/login", // Route for the login page
   },
 
-  callbacks: {
-    async redirect({ baseUrl, account }) {
-      // Google login → skip onboarding
-      if (account?.provider === "google") {
-        return `${baseUrl}/dashboard`;
-      }
-
-      // Email login → go to onboarding
-      if (account?.provider === "email") {
-        return `${baseUrl}/onboarding`;
-      }
-
-      return baseUrl;
-    },
+  // --- Session Strategy (NextAuth default is fine) ---
+  session: {
+    strategy: "jwt",
   },
+
+  // --- Optional Logging ---
+  debug: false,
 };
 
 export default NextAuth(authOptions);
