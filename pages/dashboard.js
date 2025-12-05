@@ -140,3 +140,209 @@ export async function getServerSideProps(context) {
     props: { session },
   };
 }
+// pages/dashboard.js
+import React, { useEffect } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/router";
+import Sidebar from "../components/Sidebar";
+
+export default function Dashboard() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+
+  // Protect route: redirect to /login if not authenticated
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.replace("/login");
+    }
+  }, [status, router]);
+
+  if (status === "loading") {
+    return (
+      <div className="eg-root">
+        <div className="eg-shell">
+          <p>Loading your dashboard…</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!session) {
+    // While redirecting
+    return null;
+  }
+
+  const userName =
+    session.user?.name || session.user?.email?.split("@")[0] || "Teacher";
+
+  // TODO: later pull real stats from Supabase
+  const stats = {
+    rubrics: 0,
+    feedback: 0,
+    essays: 0,
+    timeSavedHours: 0,
+  };
+
+  const avatarInitial =
+    userName && typeof userName === "string"
+      ? userName.trim().charAt(0).toUpperCase()
+      : "T";
+
+  return (
+    <div className="eg-root">
+      <div className="eg-shell eg-dashboard-shell">
+        <div className="eg-dashboard-layout">
+          {/* Sidebar */}
+          <Sidebar />
+
+          {/* Main content */}
+          <main className="eg-dashboard-main">
+            {/* Header */}
+            <header className="eg-dashboard-header">
+              <div>
+                <h1 className="eg-dashboard-title">Welcome back, {userName}</h1>
+                <p className="eg-dashboard-subtitle">
+                  Here&apos;s a quick overview of your grading activity.
+                </p>
+              </div>
+              <div className="eg-dashboard-avatar">
+                <span>{avatarInitial}</span>
+              </div>
+            </header>
+
+            {/* Stats row */}
+            <section className="eg-dashboard-grid">
+              <div className="eg-stat-card">
+                <h3>Saved Rubrics</h3>
+                <p className="eg-stat-number">{stats.rubrics}</p>
+                <p className="eg-stat-caption">
+                  Create reusable rubrics for future assignments.
+                </p>
+              </div>
+              <div className="eg-stat-card">
+                <h3>Feedback Entries</h3>
+                <p className="eg-stat-number">{stats.feedback}</p>
+                <p className="eg-stat-caption">
+                  Track recent feedback you&apos;ve given to students.
+                </p>
+              </div>
+              <div className="eg-stat-card">
+                <h3>Essays Graded</h3>
+                <p className="eg-stat-number">{stats.essays}</p>
+                <p className="eg-stat-caption">
+                  Count of essays graded with EasyGrade.
+                </p>
+              </div>
+              <div className="eg-stat-card eg-stat-card--accent">
+                <h3>Time Saved</h3>
+                <p className="eg-stat-number">
+                  {stats.timeSavedHours}
+                  <span className="eg-stat-unit"> hrs</span>
+                </p>
+                <p className="eg-stat-caption">
+                  Estimated grading hours saved with AI assistance.
+                </p>
+              </div>
+            </section>
+
+            {/* Quick actions */}
+            <section className="eg-dashboard-actions">
+              <h2 className="eg-section-title">Quick Actions</h2>
+              <div className="eg-actions-grid">
+                <button
+                  type="button"
+                  className="eg-action-card"
+                  onClick={() => router.push("/")}
+                >
+                  <span className="material-symbols-rounded eg-action-icon">
+                    edit_note
+                  </span>
+                  <div>
+                    <h3>Grade a New Essay</h3>
+                    <p>Jump straight into grading with your latest rubric.</p>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  className="eg-action-card"
+                  onClick={() => router.push("/rubric-builder")}
+                >
+                  <span className="material-symbols-rounded eg-action-icon">
+                    fact_check
+                  </span>
+                  <div>
+                    <h3>Create New Rubric</h3>
+                    <p>Generate or build a fresh rubric for an assignment.</p>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  className="eg-action-card"
+                  onClick={() => router.push("/")}
+                >
+                  <span className="material-symbols-rounded eg-action-icon">
+                    upload_file
+                  </span>
+                  <div>
+                    <h3>Upload Existing Rubric</h3>
+                    <p>
+                      Import a rubric from PDF or DOCX and reuse it with AI
+                      grading.
+                    </p>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  className="eg-action-card"
+                  onClick={() => router.push("/")}
+                >
+                  <span className="material-symbols-rounded eg-action-icon">
+                    history
+                  </span>
+                  <div>
+                    <h3>Continue Grading</h3>
+                    <p>Coming soon: pick up where you left off.</p>
+                  </div>
+                </button>
+              </div>
+            </section>
+
+            {/* Saved rubrics + recent feedback previews */}
+            <section className="eg-dashboard-bottom">
+              <div className="eg-bottom-column">
+                <h2 className="eg-section-title">Saved Rubrics</h2>
+                <p className="eg-muted-text">
+                  Save rubrics from the grader or Rubric Builder and they&apos;ll
+                  appear here.
+                </p>
+                <div className="eg-placeholder-panel">
+                  <span className="material-symbols-rounded">fact_check</span>
+                  <p>No rubrics saved yet.</p>
+                </div>
+              </div>
+
+              <div className="eg-bottom-column">
+                <h2 className="eg-section-title">Recent Feedback</h2>
+                <p className="eg-muted-text">
+                  Recent AI-generated feedback will be listed here for reuse.
+                </p>
+                <ul className="eg-feedback-list">
+                  <li className="eg-feedback-item">
+                    <div className="eg-feedback-tag">Coming soon</div>
+                    <p>
+                      Once you start grading, you&apos;ll see quick links to recent
+                      feedback here.
+                    </p>
+                  </li>
+                </ul>
+              </div>
+            </section>
+          </main>
+        </div>
+      </div>
+    </div>
+  );
+}
