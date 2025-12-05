@@ -434,3 +434,115 @@
     flex-wrap: wrap;
   }
 }
+/* LOGIN PAGE LAYOUT */
+
+.eg-login-shell {
+  max-width: 640px;
+}
+
+.eg-login-hero {
+  margin-top: 8px;
+}
+
+.eg-login-main {
+  display: flex;
+  justify-content: center;
+}
+
+.eg-login-card {
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+.eg-login-button {
+  width: 100%;
+}
+
+.eg-login-divider {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0;
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+.eg-login-divider::before,
+.eg-login-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: #e5e7eb;
+}
+
+/* DASHBOARD */
+
+.eg-dashboard-hero {
+  text-align: left;
+}
+
+.eg-dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.eg-dashboard-card {
+  min-height: 160px;
+}
+
+.eg-list {
+  margin: 0 0 12px 0;
+  padding-left: 18px;
+  font-size: 0.9rem;
+  color: #374151;
+}
+
+.eg-nav-hello {
+  font-size: 0.9rem;
+  color: #6b7280;
+}
+
+/* Quick stats */
+
+.eg-stat-card {
+  grid-column: 1 / -1;
+}
+
+.eg-stat-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.eg-stat-pill {
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: #eef2ff;
+  border: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  min-width: 140px;
+}
+
+.eg-stat-label {
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.eg-stat-value {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #4f46e5;
+}
+
+@media (max-width: 900px) {
+  .eg-dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .eg-stat-card {
+    grid-column: auto;
+  }
+}

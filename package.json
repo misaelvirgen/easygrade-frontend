@@ -8,12 +8,15 @@
     "start": "next start"
   },
   "dependencies": {
+    "@auth/supabase-adapter": "^1.11.1",
     "@stripe/stripe-js": "^2.0.0",
+    "@supabase/supabase-js": "^2.86.2",
     "axios": "^1.5.0",
     "chart.js": "^4.4.0",
     "filepond": "^4.32.0",
     "jspdf": "^3.0.4",
     "next": "15.5.7",
+    "next-auth": "^4.24.13",
     "react": "18.2.0",
     "react-chartjs-2": "^5.2.0",
     "react-dom": "18.2.0",

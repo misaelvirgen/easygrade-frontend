@@ -1,11 +1,6 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import {
-  gradeAssignment,
-  uploadPdf,
-  uploadRubric,
-  generateRubric,
-} from "../services/apiService";
+import { gradeAssignment, uploadPdf, uploadRubric, generateRubric, } from "../services/apiService";
 
 const BUILT_IN_RUBRICS = [
   { title: "5-Paragraph Essay Rubric", text: "Intro...\nBody...\nConclusion..." },
@@ -175,9 +170,9 @@ export default function Home() {
             <button type="button" className="eg-nav-link">
               Reports
             </button>
-            <button type="button" className="eg-nav-login">
+              <Link href="/login" className="eg-nav-login">
               Login
-            </button>
+           </Link>
           </nav>
         </header>
 
