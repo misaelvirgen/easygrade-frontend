@@ -70,80 +70,104 @@ export default function RubricBuilder() {
   };
 
   const handleDownloadPdf = async () => {
-    if (!rubricText.trim()) {
-      setErrorMsg("Add rubric text before downloading.");
-      return;
-    }
-    setErrorMsg("");
-    setSaveStatus("");
+  if (!rubricText.trim()) {
+    setErrorMsg("Add rubric text before downloading.");
+    return;
+  }
+  setErrorMsg("");
+  setSaveStatus("");
 
-    try {
-      const { jsPDF } = await import("jspdf");
-      const doc = new jsPDF({ unit: "pt", format: "letter" });
+  try {
+    const { jsPDF } = await import("jspdf");
 
-      const left = 40;
-      const right = 550;
-      const bottom = 770;
-      let y = 40;
+    const doc = new jsPDF({
+      orientation: "landscape", // ← NEW: horizontal layout
+      unit: "pt",
+      format: "letter",
+    });
 
-      // Header
+    const left = 40;
+    const right = 760;   // wider page width in landscape
+    const bottom = 550;  // shorter page height in landscape
+    let y = 40;
+
+    // -------- HEADER --------
+    doc.setFontSize(14);
+    doc.text("EASYGRADE — RUBRIC EXPORT", left, y);
+    y += 22;
+
+    // Rubric Name
+    if (rubricTitle.trim()) {
       doc.setFontSize(12);
-      doc.text("EASYGRADE — RUBRIC EXPORT", left, y);
+      doc.text(`Rubric Name: ${rubricTitle}`, left, y);
       y += 20;
+    }
 
-      if (gradeLevel) {
-        doc.text(`Grade Level: ${gradeLevel}`, left, y);
-        y += 20;
-      }
+    // Grade Level
+    if (gradeLevel.trim()) {
+      doc.setFontSize(12);
+      doc.text(`Grade Level: ${gradeLevel}`, left, y);
+      y += 22;
+    }
 
-      // Rubric header
-      doc.text("RUBRIC", left, y);
-      y += 10;
-      doc.setLineWidth(0.5);
-      doc.line(left, y, right, y);
-      y += 18;
+    // Section Title
+    doc.setFontSize(13);
+    doc.text("RUBRIC", left, y);
+    y += 10;
+    doc.setLineWidth(0.5);
+    doc.line(left, y, right, y);
+    y += 18;
 
-      // Rubric text
-      doc.setFontSize(11);
-      const maxWidth = right - left;
-      const wrapped = doc.splitTextToSize(rubricText, maxWidth);
+    // -------- RUBRIC TEXT --------
+    doc.setFontSize(11);
+    const maxWidth = right - left;
+    const wrapped = doc.splitTextToSize(rubricText, maxWidth);
 
-      wrapped.forEach((line) => {
-        if (y > bottom - 140) {
-          doc.addPage();
-          y = 40;
-        }
-        doc.text(line, left, y);
-        y += 16;
-      });
-
-      // Comments header
-      if (y > bottom - 100) {
-        doc.addPage();
+    wrapped.forEach((line) => {
+      if (y > bottom - 120) {
+        doc.addPage({ orientation: "landscape", unit: "pt", format: "letter" });
         y = 40;
       }
-      y += 10;
-      doc.setFontSize(12);
-      doc.text("TEACHER COMMENTS", left, y);
-      y += 10;
-      doc.setLineWidth(0.5);
-      doc.line(left, y, right, y);
-      y += 18;
+      doc.text(line, left, y);
+      y += 16;
+    });
 
-      // Auto-fill remaining space with thin straight lines
-      while (y < bottom) {
-        doc.line(left, y, right, y);
-        y += 24;
-      }
-
-      const safeTitle =
-        (rubricTitle || "rubric").replace(/[^\w\-]+/g, "_") + ".pdf";
-      doc.save(safeTitle);
-    } catch (e) {
-      console.error(e);
-      setErrorMsg("Failed to generate PDF.");
+    // -------- COMMENTS SECTION --------
+    if (y > bottom - 80) {
+      doc.addPage({
+        orientation: "landscape",
+        unit: "pt",
+        format: "letter",
+      });
+      y = 40;
     }
-  };
+
+    y += 10;
+
+    doc.setFontSize(12);
+    doc.text("TEACHER COMMENTS", left, y);
+    y += 10;
+
+    doc.setLineWidth(0.5);
+    doc.line(left, y, right, y);
+    y += 18;
+
+    // AUTO-FILL REMAINING SPACE WITH STRAIGHT LINES
+    while (y < bottom) {
+      doc.line(left, y, right, y);
+      y += 22; // thin straight lines evenly spaced
+    }
+
+    const safeTitle =
+      (rubricTitle || "rubric").replace(/[^\w\-]+/g, "_") + ".pdf";
+
+    doc.save(safeTitle);
+  } catch (e) {
+    console.error(e);
+    setErrorMsg("Failed to generate PDF.");
+  }
+};
+
 
   const handleClear = () => {
     setRubricText("");
