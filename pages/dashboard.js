@@ -1,12 +1,16 @@
 // pages/dashboard.js
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/router";
 import Sidebar from "../components/Sidebar";
+import { getUserProfile } from "../utils/getUserProfile";
 
 export default function Dashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
+
+  // Premium state
+  const [isPremium, setIsPremium] = useState(null); // null = loading profile
 
   // Protect route
   useEffect(() => {
@@ -15,7 +19,16 @@ export default function Dashboard() {
     }
   }, [status, router]);
 
-  if (status === "loading") {
+  // Fetch premium status
+  useEffect(() => {
+    if (status === "authenticated") {
+      getUserProfile().then((p) => {
+        setIsPremium(p?.is_premium || false);
+      });
+    }
+  }, [status]);
+
+  if (status === "loading" || isPremium === null) {
     return (
       <div className="eg-root">
         <div className="eg-shell">
@@ -26,6 +39,27 @@ export default function Dashboard() {
   }
 
   if (!session) return null;
+
+  // If not premium → show upgrade CTA instead of dashboard
+  if (!isPremium) {
+    return (
+      <div className="eg-root">
+        <div className="eg-shell" style={{ padding: "2rem", textAlign: "center" }}>
+          <h1>Upgrade Required</h1>
+          <p>Your account does not have access to premium features.</p>
+          <button
+            className="eg-action-card"
+            onClick={() => router.push("/upgrade")}
+            style={{ marginTop: "1.5rem", padding: "1rem 2rem", fontSize: "1.2rem" }}
+          >
+            Upgrade to Premium
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // PREMIUM USERS SEE FULL DASHBOARD ↓↓↓
 
   const userName =
     session.user?.name || session.user?.email?.split("@")[0] || "Teacher";
@@ -46,25 +80,34 @@ export default function Dashboard() {
     <div className="eg-root">
       <div className="eg-shell eg-dashboard-shell">
         <div className="eg-dashboard-layout">
+
           {/* Sidebar */}
           <Sidebar />
 
           {/* Main content */}
           <main className="eg-dashboard-main">
             {/* Header */}
-            <header className="eg-dashboard-header">
-              <div>
-                <h1 className="eg-dashboard-title">
-                  Welcome back, {userName}
-                </h1>
-                <p className="eg-dashboard-subtitle">
-                  Here&apos;s a quick overview of your grading activity.
-                </p>
-              </div>
-              <div className="eg-dashboard-avatar">
-                <span>{avatarInitial}</span>
-              </div>
-            </header>
+<header className="eg-dashboard-header">
+  <div>
+    <h1 className="eg-dashboard-title">
+      Welcome back, {userName}
+    </h1>
+    <p className="eg-dashboard-subtitle">
+      Here&apos;s a quick overview of your grading activity.
+    </p>
+  </div>
+
+  <div className="eg-dashboard-header-right">
+    {isPremium && (
+      <span className="eg-premium-badge">
+        Premium
+      </span>
+    )}
+    <div className="eg-dashboard-avatar">
+      <span>{avatarInitial}</span>
+    </div>
+  </div>
+</header>
 
             {/* Stats row */}
             <section className="eg-dashboard-grid">
@@ -80,16 +123,14 @@ export default function Dashboard() {
                 <h3>Feedback Entries</h3>
                 <p className="eg-stat-number">{stats.feedback}</p>
                 <p className="eg-stat-caption">
-                  Track recent feedback you&apos;ve given to students.
+                  Track recent feedback you've given to students.
                 </p>
               </div>
 
               <div className="eg-stat-card">
                 <h3>Essays Graded</h3>
                 <p className="eg-stat-number">{stats.essays}</p>
-                <p className="eg-stat-caption">
-                  Count of graded essays.
-                </p>
+                <p className="eg-stat-caption">Count of graded essays.</p>
               </div>
 
               <div className="eg-stat-card eg-stat-card--accent">

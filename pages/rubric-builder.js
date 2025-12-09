@@ -1,6 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useSession, signOut } from "next-auth/react";
+import { useRouter } from "next/router";
 import { generateRubric } from "../services/apiService";
+import { getUserProfile } from "@/utils/getUserProfile";
 
 export default function RubricBuilder() {
   const [gradeLevel, setGradeLevel] = useState("");
@@ -10,6 +13,55 @@ export default function RubricBuilder() {
   const [saveStatus, setSaveStatus] = useState("");
   const [generating, setGenerating] = useState(false);
 
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  const [isPremium, setIsPremium] = useState(null);
+
+  // Redirect unauthenticated users
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.replace("/login");
+    }
+  }, [status, router]);
+
+  // Load premium status
+  useEffect(() => {
+    async function loadProfile() {
+      if (!session?.user?.email) return;
+      const profile = await getUserProfile();
+      setIsPremium(profile?.is_premium || false);
+    }
+    if (session) loadProfile();
+  }, [session]);
+
+  // Still loading session or premium data
+  if (status === "loading" || isPremium === null) {
+    return (
+      <div className="eg-root">
+        <div className="eg-shell"><p>Loading…</p></div>
+      </div>
+    );
+  }
+
+  // Non-premium users blocked
+  if (!isPremium) {
+    return (
+      <div className="eg-root">
+        <div className="eg-shell" style={{ textAlign: "center", padding: "3rem" }}>
+          <h1>Upgrade Required</h1>
+          <p>You need a Premium subscription to access the Rubric Builder.</p>
+          <button
+            className="eg-nav-login"
+            onClick={() => router.push("/upgrade")}
+          >
+            Upgrade to Premium
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ---------- RUBRIC BUILDER LOGIC ----------
   const handleGenerateRubric = async () => {
     if (!gradeLevel) {
       setErrorMsg("Please select a grade level before generating.");
@@ -42,9 +94,10 @@ export default function RubricBuilder() {
 
     try {
       const storageKey = "easygrade_custom_rubrics";
-      const raw = typeof window !== "undefined"
-        ? window.localStorage.getItem(storageKey)
-        : null;
+      const raw =
+        typeof window !== "undefined"
+          ? window.localStorage.getItem(storageKey)
+          : null;
 
       const existing = raw ? JSON.parse(raw) : [];
       const newRubric = {
@@ -70,104 +123,100 @@ export default function RubricBuilder() {
   };
 
   const handleDownloadPdf = async () => {
-  if (!rubricText.trim()) {
-    setErrorMsg("Add rubric text before downloading.");
-    return;
-  }
-  setErrorMsg("");
-  setSaveStatus("");
-
-  try {
-    const { jsPDF } = await import("jspdf");
-
-    const doc = new jsPDF({
-      orientation: "landscape", // ← NEW: horizontal layout
-      unit: "pt",
-      format: "letter",
-    });
-
-    const left = 40;
-    const right = 760;   // wider page width in landscape
-    const bottom = 550;  // shorter page height in landscape
-    let y = 40;
-
-    // -------- HEADER --------
-    doc.setFontSize(14);
-    doc.text("EASYGRADE — RUBRIC EXPORT", left, y);
-    y += 22;
-
-    // Rubric Name
-    if (rubricTitle.trim()) {
-      doc.setFontSize(12);
-      doc.text(`Rubric Name: ${rubricTitle}`, left, y);
-      y += 20;
+    if (!rubricText.trim()) {
+      setErrorMsg("Add rubric text before downloading.");
+      return;
     }
+    setErrorMsg("");
+    setSaveStatus("");
 
-    // Grade Level
-    if (gradeLevel.trim()) {
-      doc.setFontSize(12);
-      doc.text(`Grade Level: ${gradeLevel}`, left, y);
-      y += 22;
-    }
+    try {
+      const { jsPDF } = await import("jspdf");
 
-    // Section Title
-    doc.setFontSize(13);
-    doc.text("RUBRIC", left, y);
-    y += 10;
-    doc.setLineWidth(0.5);
-    doc.line(left, y, right, y);
-    y += 18;
-
-    // -------- RUBRIC TEXT --------
-    doc.setFontSize(11);
-    const maxWidth = right - left;
-    const wrapped = doc.splitTextToSize(rubricText, maxWidth);
-
-    wrapped.forEach((line) => {
-      if (y > bottom - 120) {
-        doc.addPage({ orientation: "landscape", unit: "pt", format: "letter" });
-        y = 40;
-      }
-      doc.text(line, left, y);
-      y += 16;
-    });
-
-    // -------- COMMENTS SECTION --------
-    if (y > bottom - 80) {
-      doc.addPage({
+      const doc = new jsPDF({
         orientation: "landscape",
         unit: "pt",
         format: "letter",
       });
-      y = 40;
-    }
 
-    y += 10;
+      const left = 40;
+      const right = 760;
+      const bottom = 550;
+      let y = 40;
 
-    doc.setFontSize(12);
-    doc.text("TEACHER COMMENTS", left, y);
-    y += 10;
+      doc.setFontSize(14);
+      doc.text("EASYGRADE — RUBRIC EXPORT", left, y);
+      y += 22;
 
-    doc.setLineWidth(0.5);
-    doc.line(left, y, right, y);
-    y += 18;
+      if (rubricTitle.trim()) {
+        doc.setFontSize(12);
+        doc.text(`Rubric Name: ${rubricTitle}`, left, y);
+        y += 20;
+      }
 
-    // AUTO-FILL REMAINING SPACE WITH STRAIGHT LINES
-    while (y < bottom) {
+      if (gradeLevel.trim()) {
+        doc.setFontSize(12);
+        doc.text(`Grade Level: ${gradeLevel}`, left, y);
+        y += 22;
+      }
+
+      doc.setFontSize(13);
+      doc.text("RUBRIC", left, y);
+      y += 10;
+      doc.setLineWidth(0.5);
       doc.line(left, y, right, y);
-      y += 22; // thin straight lines evenly spaced
+      y += 18;
+
+      doc.setFontSize(11);
+      const maxWidth = right - left;
+      const wrapped = doc.splitTextToSize(rubricText, maxWidth);
+
+      wrapped.forEach((line) => {
+        if (y > bottom - 120) {
+          doc.addPage({
+            orientation: "landscape",
+            unit: "pt",
+            format: "letter",
+          });
+          y = 40;
+        }
+        doc.text(line, left, y);
+        y += 16;
+      });
+
+      if (y > bottom - 80) {
+        doc.addPage({
+          orientation: "landscape",
+          unit: "pt",
+          format: "letter",
+        });
+        y = 40;
+      }
+
+      y += 10;
+
+      doc.setFontSize(12);
+      doc.text("TEACHER COMMENTS", left, y);
+      y += 10;
+
+      doc.setLineWidth(0.5);
+      doc.line(left, y, right, y);
+      y += 18;
+
+      while (y < bottom) {
+        doc.line(left, y, right, y);
+        y += 22;
+      }
+
+      const safeTitle =
+        (rubricTitle || "rubric").replace(/[^\w\-]+/g, "_") + ".pdf";
+
+      doc.save(safeTitle);
+    } catch (e) {
+      console.error(e);
+      setErrorMsg("Failed to generate PDF.");
     }
-
-    const safeTitle =
-      (rubricTitle || "rubric").replace(/[^\w\-]+/g, "_") + ".pdf";
-
-    doc.save(safeTitle);
-  } catch (e) {
-    console.error(e);
-    setErrorMsg("Failed to generate PDF.");
-  }
-};
-
+  };
 
   const handleClear = () => {
     setRubricText("");
@@ -175,28 +224,48 @@ export default function RubricBuilder() {
     setErrorMsg("");
   };
 
+  // ---------- RETURN UI ----------
   return (
     <div className="eg-root">
       <div className="eg-shell">
+
         {/* HEADER */}
         <header className="eg-header">
           <div className="eg-brand">EasyGrade</div>
+
           <nav className="eg-nav">
-            <Link href="/" className="eg-nav-link">
-              Grade Essay
-            </Link>
-            <button className="eg-nav-link" type="button">
-              Upload PDF
-            </button>
-            <Link href="/rubric-builder" className="eg-nav-link">
-              Rubric Builder
-            </Link>
-            <button className="eg-nav-link" type="button">
-              Reports
-            </button>
-            <button className="eg-nav-login" type="button">
-              Login
-            </button>
+            <Link href="/" className="eg-nav-link">Grade Essay</Link>
+            <button className="eg-nav-link">Upload PDF</button>
+            <Link href="/rubric-builder" className="eg-nav-link">Rubric Builder</Link>
+            <button className="eg-nav-link">Reports</button>
+
+            {!session && (
+              <button className="eg-nav-login" onClick={() => router.push("/login")}>
+                Login
+              </button>
+            )}
+
+            {session && (
+              <>
+                <button className="eg-nav-link" onClick={() => router.push("/dashboard")}>
+                  Dashboard
+                </button>
+
+                {!isPremium && (
+                  <button className="eg-nav-link eg-upgrade-link" onClick={() => router.push("/upgrade")}>
+                    Upgrade
+                  </button>
+                )}
+
+                {isPremium && (
+                  <span className="eg-premium-pill">Premium</span>
+                )}
+
+                <button className="eg-nav-login" onClick={() => signOut()}>
+                  Logout
+                </button>
+              </>
+            )}
           </nav>
         </header>
 
@@ -212,6 +281,7 @@ export default function RubricBuilder() {
 
         {/* MAIN CONTENT */}
         <main className="eg-builder-main">
+          
           {/* LEFT: SETTINGS */}
           <section className="eg-card">
             <h2 className="eg-card-title">Rubric Settings</h2>
@@ -260,29 +330,18 @@ export default function RubricBuilder() {
             />
 
             <div className="eg-builder-actions">
-              <button
-                type="button"
-                className="eg-secondary-button eg-button-inline"
-                onClick={handleSaveRubric}
-              >
+              <button className="eg-secondary-button" onClick={handleSaveRubric}>
                 Save Rubric
               </button>
-              <button
-                type="button"
-                className="eg-secondary-button eg-button-inline"
-                onClick={handleDownloadPdf}
-              >
+              <button className="eg-secondary-button" onClick={handleDownloadPdf}>
                 Download PDF
               </button>
-              <button
-                type="button"
-                className="eg-link-button"
-                onClick={handleClear}
-              >
+              <button className="eg-link-button" onClick={handleClear}>
                 Clear Rubric
               </button>
             </div>
           </section>
+
         </main>
       </div>
     </div>
