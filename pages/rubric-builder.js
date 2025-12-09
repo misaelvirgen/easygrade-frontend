@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/router";
 import { generateRubric } from "../services/apiService";
-import { getUserProfile } from "@/utils/getUserProfile";
+import { getUserProfile } from "../utils/getUserProfile";
 
 export default function RubricBuilder() {
   const [gradeLevel, setGradeLevel] = useState("");
@@ -15,26 +15,42 @@ export default function RubricBuilder() {
 
   const { data: session, status } = useSession();
   const router = useRouter();
+
+  // Premium status
   const [isPremium, setIsPremium] = useState(null);
 
-  // Redirect unauthenticated users
-  useEffect(() => {
-    if (status === "unauthenticated") {
-      router.replace("/login");
-    }
-  }, [status, router]);
+  // 🔒 If not logged in → show login prompt instead of redirecting
+  if (status === "unauthenticated") {
+    return (
+      <div className="eg-root">
+        <div className="eg-shell" style={{ textAlign: "center", padding: "3rem" }}>
+          <h1>Please log in</h1>
+          <button
+            className="eg-nav-login"
+            onClick={() => router.push("/login")}
+          >
+            Go to Login
+          </button>
+        </div>
+      </div>
+    );
+  }
 
-  // Load premium status
+  // Load premium status AFTER login
   useEffect(() => {
     async function loadProfile() {
       if (!session?.user?.email) return;
+
       const profile = await getUserProfile();
       setIsPremium(profile?.is_premium || false);
     }
-    if (session) loadProfile();
-  }, [session]);
 
-  // Still loading session or premium data
+    if (status === "authenticated") {
+      loadProfile();
+    }
+  }, [status, session]);
+
+  // Still loading session or premium
   if (status === "loading" || isPremium === null) {
     return (
       <div className="eg-root">
@@ -43,13 +59,14 @@ export default function RubricBuilder() {
     );
   }
 
-  // Non-premium users blocked
+  // NOT PREMIUM → show Upgrade screen
   if (!isPremium) {
     return (
       <div className="eg-root">
         <div className="eg-shell" style={{ textAlign: "center", padding: "3rem" }}>
           <h1>Upgrade Required</h1>
           <p>You need a Premium subscription to access the Rubric Builder.</p>
+
           <button
             className="eg-nav-login"
             onClick={() => router.push("/upgrade")}
@@ -61,10 +78,10 @@ export default function RubricBuilder() {
     );
   }
 
-  // ---------- RUBRIC BUILDER LOGIC ----------
+  // ----------------------- RUBRIC BUILDER LOGIC -----------------------
   const handleGenerateRubric = async () => {
     if (!gradeLevel) {
-      setErrorMsg("Please select a grade level before generating.");
+      setErrorMsg("Please select a grade level.");
       return;
     }
     setErrorMsg("");
@@ -77,8 +94,7 @@ export default function RubricBuilder() {
         gradeLevel
       );
       setRubricText(generated.rubric || "");
-    } catch (err) {
-      console.error(err);
+    } catch {
       setErrorMsg("Failed to generate rubric.");
     } finally {
       setGenerating(false);
@@ -90,7 +106,6 @@ export default function RubricBuilder() {
       setErrorMsg("Add rubric text before saving.");
       return;
     }
-    setErrorMsg("");
 
     try {
       const storageKey = "easygrade_custom_rubrics";
@@ -111,13 +126,10 @@ export default function RubricBuilder() {
         ? [...existing, newRubric]
         : [newRubric];
 
-      if (typeof window !== "undefined") {
-        window.localStorage.setItem(storageKey, JSON.stringify(updated));
-      }
+      window.localStorage.setItem(storageKey, JSON.stringify(updated));
 
       setSaveStatus("Rubric saved.");
-    } catch (e) {
-      console.error(e);
+    } catch {
       setErrorMsg("Failed to save rubric.");
     }
   };
@@ -133,12 +145,7 @@ export default function RubricBuilder() {
     try {
       const { jsPDF } = await import("jspdf");
 
-      const doc = new jsPDF({
-        orientation: "landscape",
-        unit: "pt",
-        format: "letter",
-      });
-
+      const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "letter" });
       const left = 40;
       const right = 760;
       const bottom = 550;
@@ -149,13 +156,11 @@ export default function RubricBuilder() {
       y += 22;
 
       if (rubricTitle.trim()) {
-        doc.setFontSize(12);
         doc.text(`Rubric Name: ${rubricTitle}`, left, y);
         y += 20;
       }
 
       if (gradeLevel.trim()) {
-        doc.setFontSize(12);
         doc.text(`Grade Level: ${gradeLevel}`, left, y);
         y += 22;
       }
@@ -163,57 +168,23 @@ export default function RubricBuilder() {
       doc.setFontSize(13);
       doc.text("RUBRIC", left, y);
       y += 10;
-      doc.setLineWidth(0.5);
       doc.line(left, y, right, y);
       y += 18;
 
       doc.setFontSize(11);
-      const maxWidth = right - left;
-      const wrapped = doc.splitTextToSize(rubricText, maxWidth);
+      const wrapped = doc.splitTextToSize(rubricText, right - left);
 
       wrapped.forEach((line) => {
         if (y > bottom - 120) {
-          doc.addPage({
-            orientation: "landscape",
-            unit: "pt",
-            format: "letter",
-          });
+          doc.addPage({ orientation: "landscape", unit: "pt", format: "letter" });
           y = 40;
         }
         doc.text(line, left, y);
         y += 16;
       });
 
-      if (y > bottom - 80) {
-        doc.addPage({
-          orientation: "landscape",
-          unit: "pt",
-          format: "letter",
-        });
-        y = 40;
-      }
-
-      y += 10;
-
-      doc.setFontSize(12);
-      doc.text("TEACHER COMMENTS", left, y);
-      y += 10;
-
-      doc.setLineWidth(0.5);
-      doc.line(left, y, right, y);
-      y += 18;
-
-      while (y < bottom) {
-        doc.line(left, y, right, y);
-        y += 22;
-      }
-
-      const safeTitle =
-        (rubricTitle || "rubric").replace(/[^\w\-]+/g, "_") + ".pdf";
-
-      doc.save(safeTitle);
-    } catch (e) {
-      console.error(e);
+      doc.save((rubricTitle || "rubric").replace(/[^\w\-]+/g, "_") + ".pdf");
+    } catch {
       setErrorMsg("Failed to generate PDF.");
     }
   };
@@ -224,7 +195,7 @@ export default function RubricBuilder() {
     setErrorMsg("");
   };
 
-  // ---------- RETURN UI ----------
+  // ----------------------- UI -----------------------
   return (
     <div className="eg-root">
       <div className="eg-shell">
@@ -257,9 +228,7 @@ export default function RubricBuilder() {
                   </button>
                 )}
 
-                {isPremium && (
-                  <span className="eg-premium-pill">Premium</span>
-                )}
+                {isPremium && <span className="eg-premium-pill">Premium</span>}
 
                 <button className="eg-nav-login" onClick={() => signOut()}>
                   Logout
@@ -281,7 +250,6 @@ export default function RubricBuilder() {
 
         {/* MAIN CONTENT */}
         <main className="eg-builder-main">
-          
           {/* LEFT: SETTINGS */}
           <section className="eg-card">
             <h2 className="eg-card-title">Rubric Settings</h2>

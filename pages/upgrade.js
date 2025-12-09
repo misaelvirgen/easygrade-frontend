@@ -2,32 +2,40 @@
 import React, { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/router";
-import PricingButtons from "@/components/PricingButtons";
-import { getUserProfile } from "@/utils/getUserProfile";
+import PricingButtons from "../components/PricingButtons";   // FIXED IMPORT
+import { getUserProfile } from "../utils/getUserProfile";   // FIXED IMPORT
 
 export default function UpgradePage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [isPremium, setIsPremium] = useState(null);
 
-  // Redirect unauthenticated users
+  // Redirect if not logged in
   useEffect(() => {
     if (status === "unauthenticated") {
       router.replace("/login");
     }
   }, [status, router]);
 
-  // Check premium status
+  // Load premium status
   useEffect(() => {
-    async function load() {
+    async function loadProfile() {
       if (!session?.user?.email) return;
       const profile = await getUserProfile();
-      setIsPremium(profile?.is_premium);
+      setIsPremium(profile?.is_premium || false);
     }
-    if (status === "authenticated") load();
+
+    if (status === "authenticated") loadProfile();
   }, [status, session]);
 
-  // Still loading session or premium state
+  // Redirect premium users safely (inside effect, not render)
+  useEffect(() => {
+    if (isPremium === true) {
+      router.replace("/dashboard");
+    }
+  }, [isPremium, router]);
+
+  // Loading state
   if (status === "loading" || isPremium === null) {
     return (
       <div className="eg-root">
@@ -38,11 +46,8 @@ export default function UpgradePage() {
     );
   }
 
-  // If already premium → redirect to dashboard
-  if (isPremium) {
-    router.replace("/dashboard");
-    return null;
-  }
+  // If redirect has been triggered, do not render content
+  if (isPremium === true) return null;
 
   return (
     <div className="eg-root">
@@ -113,11 +118,9 @@ export default function UpgradePage() {
         .eg-feature-list {
           list-style: none;
           padding: 0;
-          margin: 1.5rem 0;
+          margin: 1.5rem auto;
           text-align: left;
           max-width: 380px;
-          margin-left: auto;
-          margin-right: auto;
         }
 
         .eg-feature-list li {

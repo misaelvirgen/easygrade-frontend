@@ -9,7 +9,6 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method Not Allowed" });
   }
 
-  // Get the logged-in user session
   const session = await getServerSession(req, res, authOptions);
   if (!session) {
     return res.status(401).json({ error: "Not authenticated" });
@@ -17,7 +16,6 @@ export default async function handler(req, res) {
 
   const { plan } = req.body;
 
-  // Determine the correct Stripe Price ID
   const priceId =
     plan === "annual"
       ? process.env.STRIPE_PRICE_ANNUAL
@@ -35,7 +33,7 @@ export default async function handler(req, res) {
         },
       ],
       success_url: `${req.headers.origin}/dashboard?upgraded=true`,
-      cancel_url: `${req.headers.origin}/billing?canceled=true`,
+      cancel_url: `${req.headers.origin}/upgrade?canceled=true`,
     });
 
     return res.status(200).json({ id: checkoutSession.id });

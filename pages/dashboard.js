@@ -9,25 +9,26 @@ export default function Dashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
 
-  // Premium state
-  const [isPremium, setIsPremium] = useState(null); // null = loading profile
+  const [isPremium, setIsPremium] = useState(null);
 
-  // Protect route
+  // Redirect completely if not logged in
   useEffect(() => {
     if (status === "unauthenticated") {
       router.replace("/login");
     }
   }, [status, router]);
 
-  // Fetch premium status
+  // Load user profile (premium state)
   useEffect(() => {
-    if (status === "authenticated") {
-      getUserProfile().then((p) => {
-        setIsPremium(p?.is_premium || false);
-      });
+    async function load() {
+      if (status !== "authenticated") return;
+      const profile = await getUserProfile();
+      setIsPremium(profile?.is_premium || false);
     }
+    load();
   }, [status]);
 
+  // Loading session or profile
   if (status === "loading" || isPremium === null) {
     return (
       <div className="eg-root">
@@ -40,29 +41,11 @@ export default function Dashboard() {
 
   if (!session) return null;
 
-  // If not premium → show upgrade CTA instead of dashboard
-  if (!isPremium) {
-    return (
-      <div className="eg-root">
-        <div className="eg-shell" style={{ padding: "2rem", textAlign: "center" }}>
-          <h1>Upgrade Required</h1>
-          <p>Your account does not have access to premium features.</p>
-          <button
-            className="eg-action-card"
-            onClick={() => router.push("/upgrade")}
-            style={{ marginTop: "1.5rem", padding: "1rem 2rem", fontSize: "1.2rem" }}
-          >
-            Upgrade to Premium
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // PREMIUM USERS SEE FULL DASHBOARD ↓↓↓
-
+  // Dashboard is ALWAYS available
   const userName =
     session.user?.name || session.user?.email?.split("@")[0] || "Teacher";
+
+  const avatarInitial = userName?.charAt(0)?.toUpperCase() || "T";
 
   const stats = {
     rubrics: 0,
@@ -70,11 +53,6 @@ export default function Dashboard() {
     essays: 0,
     timeSavedHours: 0,
   };
-
-  const avatarInitial =
-    userName && typeof userName === "string"
-      ? userName.trim().charAt(0).toUpperCase()
-      : "T";
 
   return (
     <div className="eg-root">
@@ -86,30 +64,36 @@ export default function Dashboard() {
 
           {/* Main content */}
           <main className="eg-dashboard-main">
+
             {/* Header */}
-<header className="eg-dashboard-header">
-  <div>
-    <h1 className="eg-dashboard-title">
-      Welcome back, {userName}
-    </h1>
-    <p className="eg-dashboard-subtitle">
-      Here&apos;s a quick overview of your grading activity.
-    </p>
-  </div>
+            <header className="eg-dashboard-header">
+              <div>
+                <h1 className="eg-dashboard-title">
+                  Welcome back, {userName}
+                </h1>
+                <p className="eg-dashboard-subtitle">
+                  Here’s a quick overview of your grading activity.
+                </p>
+              </div>
 
-  <div className="eg-dashboard-header-right">
-    {isPremium && (
-      <span className="eg-premium-badge">
-        Premium
-      </span>
-    )}
-    <div className="eg-dashboard-avatar">
-      <span>{avatarInitial}</span>
-    </div>
-  </div>
-</header>
+              <div className="eg-dashboard-header-right">
+                {isPremium ? (
+                  <span className="eg-premium-badge">Premium</span>
+                ) : (
+                  <button
+                    className="eg-upgrade-pill"
+                    onClick={() => router.push("/upgrade")}
+                  >
+                    Upgrade
+                  </button>
+                )}
+                <div className="eg-dashboard-avatar">
+                  <span>{avatarInitial}</span>
+                </div>
+              </div>
+            </header>
 
-            {/* Stats row */}
+            {/* Stats */}
             <section className="eg-dashboard-grid">
               <div className="eg-stat-card">
                 <h3>Saved Rubrics</h3>
@@ -122,9 +106,7 @@ export default function Dashboard() {
               <div className="eg-stat-card">
                 <h3>Feedback Entries</h3>
                 <p className="eg-stat-number">{stats.feedback}</p>
-                <p className="eg-stat-caption">
-                  Track recent feedback you've given to students.
-                </p>
+                <p className="eg-stat-caption">Track recent feedback.</p>
               </div>
 
               <div className="eg-stat-card">
@@ -139,9 +121,7 @@ export default function Dashboard() {
                   {stats.timeSavedHours}
                   <span className="eg-stat-unit"> hrs</span>
                 </p>
-                <p className="eg-stat-caption">
-                  Estimated grading hours saved.
-                </p>
+                <p className="eg-stat-caption">Estimated grading hours saved.</p>
               </div>
             </section>
 
@@ -198,31 +178,6 @@ export default function Dashboard() {
                     <p>Coming soon.</p>
                   </div>
                 </button>
-              </div>
-            </section>
-
-            {/* Saved Rubrics + Feedback */}
-            <section className="eg-dashboard-bottom">
-              <div className="eg-bottom-column">
-                <h2 className="eg-section-title">Saved Rubrics</h2>
-                <p className="eg-muted-text">
-                  Rubrics saved from the grader or builder appear here.
-                </p>
-                <div className="eg-placeholder-panel">
-                  <span className="material-symbols-rounded">fact_check</span>
-                  <p>No rubrics saved yet.</p>
-                </div>
-              </div>
-
-              <div className="eg-bottom-column">
-                <h2 className="eg-section-title">Recent Feedback</h2>
-                <p className="eg-muted-text">
-                  Reuse detailed feedback from previous grading sessions.
-                </p>
-                <div className="eg-placeholder-panel">
-                  <span className="material-symbols-rounded">chat</span>
-                  <p>No feedback yet.</p>
-                </div>
               </div>
             </section>
           </main>
