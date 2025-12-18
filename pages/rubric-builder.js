@@ -1,258 +1,430 @@
-import React, { useState, useEffect } from "react";
-import Link from "next/link";
-import { useSession, signOut } from "next-auth/react";
+import React, { useEffect, useMemo, useState } from "react";
+import MainNav from "@/components/MainNav";
 import { useRouter } from "next/router";
-import { generateRubric } from "../services/apiService";
-import { getUserProfile } from "../utils/getUserProfile";
+import { useAuth } from "@/context/AuthContext";
+import { generateRubric } from "@/services/apiService";
+
+/* ---------- PRESETS ---------- */
+
+const GRADE_LEVELS = [
+  "Kindergarten",
+  "1st–6th Grade",
+  "7th–8th Grade",
+  "9th–12th Grade",
+  "College",
+];
+
+const SUBJECTS = [
+  "ELA",
+  "History / Social Studies",
+  "Science",
+  "Math",
+  "World Languages",
+  "Arts",
+  "Other",
+];
+
+const TASK_TYPES = [
+  "Essay",
+  "Presentation",
+  "Research Project",
+  "Lab Report",
+  "Creative Writing",
+  "Discussion / Reflection",
+  "Other",
+];
+
+const CRITERIA_OPTIONS = [
+  "Thesis / Central Idea",
+  "Organization & Structure",
+  "Evidence & Support",
+  "Analysis / Reasoning",
+  "Research Quality",
+  "Accuracy",
+  "Writing Mechanics",
+  "Creativity",
+  "Presentation / Visuals",
+  "Collaboration",
+];
+
+const RATING_SCALES = [
+  {
+    label: "4-Point Scale (4–3–2–1)",
+    value: ["4", "3", "2", "1"],
+  },
+  {
+    label: "Performance Levels",
+    value: ["Exemplary", "Proficient", "Developing", "Beginning"],
+  },
+  {
+    label: "Standards-Based",
+    value: ["Exceeds", "Meets", "Approaching", "Below"],
+  },
+];
+
+/* ---------- HELPERS ---------- */
+
+function normalizeCriteria(criteria, scaleLabels) {
+  // Ensures every criterion has all scale keys.
+  return (criteria || []).map((c) => {
+    const levels = { ...(c.levels || {}) };
+    scaleLabels.forEach((k) => {
+      if (typeof levels[k] !== "string") levels[k] = "";
+    });
+    return { name: c.name || "", levels };
+  });
+}
+
+function rubricToMultilineText(title, gradeLevel, subject, taskType, scaleLabels, criteria) {
+  const lines = [];
+  if (title) lines.push(`RUBRIC: ${title}`);
+  if (gradeLevel) lines.push(`GRADE LEVEL: ${gradeLevel}`);
+  if (subject) lines.push(`SUBJECT: ${subject}`);
+  if (taskType) lines.push(`TASK TYPE: ${taskType}`);
+  lines.push("");
+  criteria.forEach((c) => {
+    lines.push(`CRITERION: ${c.name}`);
+    scaleLabels.forEach((k) => {
+      lines.push(`${k}: ${c.levels?.[k] || ""}`);
+    });
+    lines.push("");
+  });
+  return lines.join("\n");
+}
+
+/* ---------- COMPONENT ---------- */
 
 export default function RubricBuilder() {
-  const [gradeLevel, setGradeLevel] = useState("");
+  const router = useRouter();
+  const { user, profile, loading } = useAuth();
+
+  /* ---------- STATE ---------- */
+
   const [rubricTitle, setRubricTitle] = useState("");
-  const [rubricText, setRubricText] = useState("");
+  const [gradeLevel, setGradeLevel] = useState("");
+  const [subject, setSubject] = useState("");
+  const [taskType, setTaskType] = useState("");
+  const [selectedCriteria, setSelectedCriteria] = useState([]);
+  const [scaleKey, setScaleKey] = useState(RATING_SCALES[0].label);
+
+  // NEW: source-of-truth rubric structure
+  const [rubricCriteria, setRubricCriteria] = useState([]);
+  const [editingId, setEditingId] = useState(null);
+
+  const [generating, setGenerating] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [saveStatus, setSaveStatus] = useState("");
-  const [generating, setGenerating] = useState(false);
 
-  const { data: session, status } = useSession();
-  const router = useRouter();
+  const isPremium = profile?.is_premium === true;
 
-  // Premium status
-  const [isPremium, setIsPremium] = useState(null);
+  const scaleLabels = useMemo(() => {
+    const found = RATING_SCALES.find((s) => s.label === scaleKey);
+    return found ? found.value : RATING_SCALES[0].value;
+  }, [scaleKey]);
 
-  // 🔒 If not logged in → show login prompt instead of redirecting
-  if (status === "unauthenticated") {
-    return (
-      <div className="eg-root">
-        <div className="eg-shell" style={{ textAlign: "center", padding: "3rem" }}>
-          <h1>Please log in</h1>
-          <button
-            className="eg-nav-login"
-            onClick={() => router.push("/login")}
-          >
-            Go to Login
-          </button>
-        </div>
-      </div>
-    );
-  }
+  /* ---------- AUTH GATING (PRO ONLY) ---------- */
 
-  // Load premium status AFTER login
   useEffect(() => {
-    async function loadProfile() {
-      if (!session?.user?.email) return;
+    if (loading) return;
 
-      const profile = await getUserProfile();
-      setIsPremium(profile?.is_premium || false);
-    }
-
-    if (status === "authenticated") {
-      loadProfile();
-    }
-  }, [status, session]);
-
-  // Still loading session or premium
-  if (status === "loading" || isPremium === null) {
-    return (
-      <div className="eg-root">
-        <div className="eg-shell"><p>Loading…</p></div>
-      </div>
-    );
-  }
-
-  // NOT PREMIUM → show Upgrade screen
-  if (!isPremium) {
-    return (
-      <div className="eg-root">
-        <div className="eg-shell" style={{ textAlign: "center", padding: "3rem" }}>
-          <h1>Upgrade Required</h1>
-          <p>You need a Premium subscription to access the Rubric Builder.</p>
-
-          <button
-            className="eg-nav-login"
-            onClick={() => router.push("/upgrade")}
-          >
-            Upgrade to Premium
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // ----------------------- RUBRIC BUILDER LOGIC -----------------------
-  const handleGenerateRubric = async () => {
-    if (!gradeLevel) {
-      setErrorMsg("Please select a grade level.");
+    if (!user) {
+      router.replace("/login");
       return;
     }
+
+    if (profile && profile.is_premium === false) {
+      router.replace("/upgrade");
+    }
+  }, [loading, user, profile, router]);
+
+  /* ---------- LOAD FOR EDIT ---------- */
+  useEffect(() => {
+    if (!router.isReady) return;
+    if (!profile || profile.is_premium === false) return;
+
+    const editId = router.query.edit;
+    if (!editId) return;
+
+    try {
+      const raw = window.localStorage.getItem("easygrade_custom_rubrics");
+      const existing = raw ? JSON.parse(raw) : [];
+      const found = existing.find((r) => String(r.id) === String(editId));
+
+      if (found) {
+        setEditingId(found.id);
+        setRubricTitle(found.title || "");
+        setGradeLevel(found.gradeLevel || "");
+        setSubject(found.subject || "");
+        setTaskType(found.taskType || "");
+        setSelectedCriteria(found.selectedCriteria || []);
+
+        // If older rubrics stored text only, attempt to keep editable empty state.
+        if (Array.isArray(found.criteria)) {
+          setRubricCriteria(normalizeCriteria(found.criteria, scaleLabels));
+        } else {
+          setRubricCriteria([]);
+        }
+      }
+    } catch (e) {
+      console.error("Failed to load rubric for editing", e);
+    }
+    // NOTE: We intentionally do NOT include scaleLabels here to avoid re-normalizing mid-load.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router.isReady, router.query.edit, profile]);
+
+  /* ---------- EARLY RETURNS ---------- */
+  if (loading || !user || !profile) {
+    return (
+      <div className="eg-root">
+        <div className="eg-shell">
+          <p>Loading…</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isPremium) return null;
+
+  /* ---------- HELPERS ---------- */
+
+  const toggleCriterion = (criterion) => {
+    setSelectedCriteria((prev) =>
+      prev.includes(criterion)
+        ? prev.filter((c) => c !== criterion)
+        : [...prev, criterion]
+    );
+  };
+
+  const ensureCriteriaFromSelected = () => {
+    // If user selected criteria but rubricCriteria is empty, initialize table rows.
+    if (!selectedCriteria.length) return;
+
+    setRubricCriteria((prev) => {
+      const byName = new Map(prev.map((c) => [c.name, c]));
+      const next = selectedCriteria.map((name) => {
+        const existing = byName.get(name);
+        if (existing) return normalizeCriteria([existing], scaleLabels)[0];
+        const levels = {};
+        scaleLabels.forEach((k) => (levels[k] = ""));
+        return { name, levels };
+      });
+      return next;
+    });
+  };
+
+  /* ---------- ACTIONS ---------- */
+
+  const handleGenerateRubric = async () => {
+    if (!rubricTitle || !gradeLevel || !subject || !taskType) {
+      setErrorMsg("Please complete all required settings.");
+      return;
+    }
+    if (selectedCriteria.length === 0) {
+      setErrorMsg("Select at least one criterion.");
+      return;
+    }
+
     setErrorMsg("");
     setSaveStatus("");
     setGenerating(true);
 
     try {
-      const generated = await generateRubric(
-        rubricTitle || "Untitled Rubric",
-        gradeLevel
-      );
-      setRubricText(generated.rubric || "");
-    } catch {
+      // IMPORTANT: This assumes your backend now supports the richer payload.
+      // If it doesn't yet, we can update backend in Step 2/3 accordingly.
+      const result = await generateRubric({
+        title: rubricTitle,
+        gradeLevel,
+        subject,
+        taskType,
+        criteria: selectedCriteria,
+        scale: scaleLabels, // send labels so AI uses them
+      });
+
+      const incoming = result?.criteria || [];
+      setRubricCriteria(normalizeCriteria(incoming, scaleLabels));
+    } catch (e) {
+      console.error(e);
       setErrorMsg("Failed to generate rubric.");
     } finally {
       setGenerating(false);
     }
   };
 
+  const updateCriterionName = (idx, value) => {
+    setRubricCriteria((prev) => {
+      const next = [...prev];
+      next[idx] = { ...next[idx], name: value };
+      return next;
+    });
+  };
+
+  const updateCell = (idx, levelKey, value) => {
+    setRubricCriteria((prev) => {
+      const next = [...prev];
+      const row = next[idx];
+      next[idx] = {
+        ...row,
+        levels: { ...(row.levels || {}), [levelKey]: value },
+      };
+      return next;
+    });
+  };
+
+  const addCriterionRow = () => {
+    setRubricCriteria((prev) => {
+      const levels = {};
+      scaleLabels.forEach((k) => (levels[k] = ""));
+      return [...prev, { name: "New Criterion", levels }];
+    });
+  };
+
+  const removeCriterionRow = (idx) => {
+    setRubricCriteria((prev) => prev.filter((_, i) => i !== idx));
+  };
+
   const handleSaveRubric = () => {
-    if (!rubricText.trim()) {
-      setErrorMsg("Add rubric text before saving.");
+    if (!rubricCriteria.length) {
+      setErrorMsg("Generate a rubric (or add criteria) before saving.");
       return;
     }
 
     try {
       const storageKey = "easygrade_custom_rubrics";
-      const raw =
-        typeof window !== "undefined"
-          ? window.localStorage.getItem(storageKey)
-          : null;
-
+      const raw = window.localStorage.getItem(storageKey);
       const existing = raw ? JSON.parse(raw) : [];
+
       const newRubric = {
-        id: Date.now(),
-        title: rubricTitle || `Rubric (${gradeLevel || "Unspecified"})`,
+        id: editingId || Date.now(),
+        title: rubricTitle || "Untitled Rubric",
         gradeLevel,
-        text: rubricText,
+        subject,
+        taskType,
+        selectedCriteria,
+        scaleKey,          // store selection label for later
+        scaleLabels,       // store actual labels too (safe)
+        criteria: rubricCriteria,
+        updatedAt: new Date().toISOString(),
       };
 
-      const updated = Array.isArray(existing)
-        ? [...existing, newRubric]
-        : [newRubric];
+      const updated = editingId
+        ? existing.map((r) => (r.id === editingId ? newRubric : r))
+        : [...existing, newRubric];
 
       window.localStorage.setItem(storageKey, JSON.stringify(updated));
-
-      setSaveStatus("Rubric saved.");
-    } catch {
+      setSaveStatus(editingId ? "Rubric updated." : "Rubric saved.");
+    } catch (e) {
+      console.error(e);
       setErrorMsg("Failed to save rubric.");
     }
   };
 
   const handleDownloadPdf = async () => {
-    if (!rubricText.trim()) {
-      setErrorMsg("Add rubric text before downloading.");
+    if (!rubricCriteria.length) {
+      setErrorMsg("Generate a rubric (or add criteria) before downloading.");
       return;
     }
+
     setErrorMsg("");
     setSaveStatus("");
 
     try {
       const { jsPDF } = await import("jspdf");
 
-      const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "letter" });
+      const doc = new jsPDF({
+        orientation: "landscape",
+        unit: "pt",
+        format: "letter",
+      });
+
       const left = 40;
-      const right = 760;
-      const bottom = 550;
-      let y = 40;
+      const top = 40;
 
       doc.setFontSize(14);
-      doc.text("EASYGRADE — RUBRIC EXPORT", left, y);
-      y += 22;
+      doc.text(`EASYGRADE — ${rubricTitle || "Rubric"}`, left, top);
 
-      if (rubricTitle.trim()) {
-        doc.text(`Rubric Name: ${rubricTitle}`, left, y);
-        y += 20;
-      }
+      doc.setFontSize(10);
+      doc.text(
+        `Grade: ${gradeLevel || "-"} | Subject: ${subject || "-"} | Task: ${taskType || "-"}`,
+        left,
+        top + 18
+      );
 
-      if (gradeLevel.trim()) {
-        doc.text(`Grade Level: ${gradeLevel}`, left, y);
-        y += 22;
-      }
+      // Convert table to multiline for now (Step 4 can do true table PDF)
+      const text = rubricToMultilineText(
+        rubricTitle,
+        gradeLevel,
+        subject,
+        taskType,
+        scaleLabels,
+        rubricCriteria
+      );
 
-      doc.setFontSize(13);
-      doc.text("RUBRIC", left, y);
-      y += 10;
-      doc.line(left, y, right, y);
-      y += 18;
+      doc.setFontSize(10);
+      const maxWidth = 740;
+      const lines = doc.splitTextToSize(text, maxWidth);
+      let y = top + 50;
 
-      doc.setFontSize(11);
-      const wrapped = doc.splitTextToSize(rubricText, right - left);
-
-      wrapped.forEach((line) => {
-        if (y > bottom - 120) {
-          doc.addPage({ orientation: "landscape", unit: "pt", format: "letter" });
+      lines.forEach((line) => {
+        if (y > 540) {
+          doc.addPage();
           y = 40;
         }
         doc.text(line, left, y);
-        y += 16;
+        y += 14;
       });
 
-      doc.save((rubricTitle || "rubric").replace(/[^\w\-]+/g, "_") + ".pdf");
-    } catch {
+      const safeTitle =
+        (rubricTitle || "rubric").replace(/[^\w\-]+/g, "_") + ".pdf";
+      doc.save(safeTitle);
+    } catch (e) {
+      console.error(e);
       setErrorMsg("Failed to generate PDF.");
     }
   };
 
   const handleClear = () => {
-    setRubricText("");
+    setRubricTitle("");
+    setGradeLevel("");
+    setSubject("");
+    setTaskType("");
+    setSelectedCriteria([]);
+    setScaleKey(RATING_SCALES[0].label);
+    setRubricCriteria([]);
+    setEditingId(null);
     setSaveStatus("");
     setErrorMsg("");
+    router.replace("/rubric-builder", undefined, { shallow: true });
   };
 
-  // ----------------------- UI -----------------------
+  /* ---------- UI ---------- */
+
   return (
     <div className="eg-root">
       <div className="eg-shell">
+        <MainNav />
 
-        {/* HEADER */}
-        <header className="eg-header">
-          <div className="eg-brand">EasyGrade</div>
-
-          <nav className="eg-nav">
-            <Link href="/" className="eg-nav-link">Grade Essay</Link>
-            <button className="eg-nav-link">Upload PDF</button>
-            <Link href="/rubric-builder" className="eg-nav-link">Rubric Builder</Link>
-            <button className="eg-nav-link">Reports</button>
-
-            {!session && (
-              <button className="eg-nav-login" onClick={() => router.push("/login")}>
-                Login
-              </button>
-            )}
-
-            {session && (
-              <>
-                <button className="eg-nav-link" onClick={() => router.push("/dashboard")}>
-                  Dashboard
-                </button>
-
-                {!isPremium && (
-                  <button className="eg-nav-link eg-upgrade-link" onClick={() => router.push("/upgrade")}>
-                    Upgrade
-                  </button>
-                )}
-
-                {isPremium && <span className="eg-premium-pill">Premium</span>}
-
-                <button className="eg-nav-login" onClick={() => signOut()}>
-                  Logout
-                </button>
-              </>
-            )}
-          </nav>
-        </header>
-
-        {/* PAGE HEADER */}
         <section className="eg-builder-header">
           <h1 className="eg-page-title">Rubric Builder</h1>
           <p className="eg-page-subtitle">
-            Create, edit, save, and export rubrics you can reuse across classes.
+            Select settings — EasyGrade builds the rubric grid.
           </p>
+
           {errorMsg && <p className="eg-error-banner">{errorMsg}</p>}
           {saveStatus && <p className="eg-success-banner">{saveStatus}</p>}
         </section>
 
-        {/* MAIN CONTENT */}
         <main className="eg-builder-main">
-          {/* LEFT: SETTINGS */}
+          {/* SETTINGS */}
           <section className="eg-card">
             <h2 className="eg-card-title">Rubric Settings</h2>
+
+            <label className="eg-label">Rubric Title</label>
+            <input
+              className="eg-input"
+              value={rubricTitle}
+              onChange={(e) => setRubricTitle(e.target.value)}
+              placeholder="e.g. WWII Research Presentation"
+            />
 
             <label className="eg-label">Grade Level</label>
             <select
@@ -261,55 +433,188 @@ export default function RubricBuilder() {
               onChange={(e) => setGradeLevel(e.target.value)}
             >
               <option value="">Select grade level…</option>
-              <option value="Elementary">Elementary</option>
-              <option value="Middle School">Middle School</option>
-              <option value="High School">High School</option>
-              <option value="College">College</option>
+              {GRADE_LEVELS.map((g) => (
+                <option key={g}>{g}</option>
+              ))}
             </select>
 
-            <label className="eg-label">Rubric Title</label>
-            <input
-              type="text"
+            <label className="eg-label">Subject</label>
+            <select
               className="eg-input"
-              value={rubricTitle}
-              onChange={(e) => setRubricTitle(e.target.value)}
-              placeholder="e.g., Argumentative Essay Rubric"
-            />
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+            >
+              <option value="">Select subject…</option>
+              {SUBJECTS.map((s) => (
+                <option key={s}>{s}</option>
+              ))}
+            </select>
+
+            <label className="eg-label">Task Type</label>
+            <select
+              className="eg-input"
+              value={taskType}
+              onChange={(e) => setTaskType(e.target.value)}
+            >
+              <option value="">Select task type…</option>
+              {TASK_TYPES.map((t) => (
+                <option key={t}>{t}</option>
+              ))}
+            </select>
+
+            <label className="eg-label">Criteria</label>
+
+<div className="eg-criteria-list">
+  {CRITERIA_OPTIONS.map((c) => (
+    <label key={c} className="eg-checkbox-row">
+      <input
+        type="checkbox"
+        checked={selectedCriteria.includes(c)}
+        onChange={() => toggleCriterion(c)}
+      />
+      <span>{c}</span>
+    </label>
+  ))}
+</div>
+
+<p className="eg-muted-text" style={{ marginTop: 6 }}>
+  Selected: {selectedCriteria.length}
+</p>
+
+
+            <label className="eg-label">Rating Scale</label>
+            <select
+              className="eg-input"
+              value={scaleKey}
+              onChange={(e) => {
+                setScaleKey(e.target.value);
+                // re-normalize existing table to include these keys
+                setRubricCriteria((prev) => normalizeCriteria(prev, RATING_SCALES.find(s=>s.label===e.target.value)?.value || scaleLabels));
+              }}
+            >
+              {RATING_SCALES.map((s) => (
+                <option key={s.label} value={s.label}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
 
             <button
-              type="button"
-              className="eg-secondary-button eg-button-inline"
-              onClick={handleGenerateRubric}
-              disabled={generating || !gradeLevel}
+              className="eg-secondary-button"
+              onClick={() => {
+                ensureCriteriaFromSelected();
+                handleGenerateRubric();
+              }}
+              disabled={generating}
             >
               {generating ? "Generating…" : "Generate Rubric"}
             </button>
+
+            <button
+              className="eg-link-button"
+              type="button"
+              onClick={ensureCriteriaFromSelected}
+              style={{ marginTop: 8 }}
+            >
+              Build table from selected criteria
+            </button>
           </section>
 
-          {/* RIGHT: RUBRIC TEXT */}
+          {/* OUTPUT */}
           <section className="eg-card">
-            <h2 className="eg-card-title">Rubric</h2>
-            <textarea
-              className="eg-textarea"
-              rows={14}
-              value={rubricText}
-              onChange={(e) => setRubricText(e.target.value)}
-              placeholder="Your rubric will appear here. You can edit it freely."
-            />
+            <h2 className="eg-card-title">Rubric (Editable)</h2>
 
-            <div className="eg-builder-actions">
-              <button className="eg-secondary-button" onClick={handleSaveRubric}>
-                Save Rubric
-              </button>
-              <button className="eg-secondary-button" onClick={handleDownloadPdf}>
-                Download PDF
-              </button>
-              <button className="eg-link-button" onClick={handleClear}>
-                Clear Rubric
-              </button>
-            </div>
+            {!rubricCriteria.length ? (
+              <p className="eg-muted-text">
+                Generate a rubric to see the rubric grid here.
+              </p>
+            ) : (
+              <>
+                <div style={{ overflowX: "auto" }}>
+                  <table
+                    style={{
+                      width: "100%",
+                      borderCollapse: "separate",
+                      borderSpacing: 0,
+                      border: "1px solid #e5e7eb",
+                      borderRadius: 12,
+                      overflow: "hidden",
+                    }}
+                  >
+                    <thead>
+                      <tr style={{ background: "#f9fafb" }}>
+                        <th style={{ padding: 12, textAlign: "left", borderBottom: "1px solid #e5e7eb", minWidth: 180 }}>
+                          Criteria
+                        </th>
+                        {scaleLabels.map((k) => (
+                          <th key={k} style={{ padding: 12, textAlign: "left", borderBottom: "1px solid #e5e7eb", minWidth: 220 }}>
+                            {k}
+                          </th>
+                        ))}
+                        <th style={{ padding: 12, borderBottom: "1px solid #e5e7eb", width: 60 }} />
+                      </tr>
+                    </thead>
+
+                    <tbody>
+                      {rubricCriteria.map((row, idx) => (
+                        <tr key={idx}>
+                          <td style={{ padding: 10, borderBottom: "1px solid #e5e7eb", verticalAlign: "top" }}>
+                            <input
+                              className="eg-input"
+                              value={row.name}
+                              onChange={(e) => updateCriterionName(idx, e.target.value)}
+                              style={{ width: "100%" }}
+                            />
+                          </td>
+
+                          {scaleLabels.map((k) => (
+                            <td key={k} style={{ padding: 10, borderBottom: "1px solid #e5e7eb", verticalAlign: "top" }}>
+                              <textarea
+                                className="eg-textarea"
+                                rows={4}
+                                value={row.levels?.[k] || ""}
+                                onChange={(e) => updateCell(idx, k, e.target.value)}
+                                style={{ minHeight: 90 }}
+                              />
+                            </td>
+                          ))}
+
+                          <td style={{ padding: 10, borderBottom: "1px solid #e5e7eb", verticalAlign: "top" }}>
+                            <button
+                              type="button"
+                              className="eg-link-button"
+                              onClick={() => removeCriterionRow(idx)}
+                              style={{ color: "#dc2626" }}
+                            >
+                              Remove
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="eg-builder-actions" style={{ marginTop: 12 }}>
+                  <button className="eg-secondary-button" type="button" onClick={addCriterionRow}>
+                    Add Criterion
+                  </button>
+
+                  <button className="eg-secondary-button" onClick={handleSaveRubric}>
+                    {editingId ? "Update Rubric" : "Save Rubric"}
+                  </button>
+
+                  <button className="eg-secondary-button" onClick={handleDownloadPdf}>
+                    Download PDF
+                  </button>
+
+                  <button className="eg-link-button" onClick={handleClear}>
+                    Clear
+                  </button>
+                </div>
+              </>
+            )}
           </section>
-
         </main>
       </div>
     </div>

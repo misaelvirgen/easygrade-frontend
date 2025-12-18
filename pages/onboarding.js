@@ -1,18 +1,57 @@
 // pages/onboarding.js
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/router";
-import { useSession } from "next-auth/react";
+import { useAuth } from "@/context/AuthContext";
+import { supabase } from "@/lib/supabase";
 
 export default function Onboarding() {
-  const { data: session } = useSession();
   const router = useRouter();
+  const { user, profile, loading } = useAuth();
 
-  const [name, setName] = useState(session?.user?.name || "");
+  const [name, setName] = useState("");
   const [gradeLevel, setGradeLevel] = useState("");
   const [subject, setSubject] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  // Prefill name from Supabase user metadata
+  useEffect(() => {
+    if (user?.user_metadata?.full_name) {
+      setName(user.user_metadata.full_name);
+    }
+    if (profile?.name) {
+      setName(profile.name);
+    }
+  }, [user, profile]);
+
+  // Redirect if not logged in
+  if (!loading && !user) {
+    router.replace("/login");
+    return null;
+  }
 
   const handleSubmit = async () => {
-    // TODO — save onboarding to Supabase "users" table
+    if (!name.trim()) return;
+
+    setSaving(true);
+
+    // Save onboarding fields into the profiles table
+    const { error } = await supabase
+      .from("profiles")
+      .update({
+        name,
+        grade_level: gradeLevel,
+        subject,
+      })
+      .eq("id", user.id);
+
+    setSaving(false);
+
+    if (error) {
+      console.error("Error saving onboarding:", error);
+      alert("Error saving profile.");
+      return;
+    }
+
     router.push("/dashboard");
   };
 
@@ -52,7 +91,7 @@ export default function Onboarding() {
           />
 
           <button className="eg-primary-button" onClick={handleSubmit}>
-            Finish Setup
+            {saving ? "Saving…" : "Finish Setup"}
           </button>
         </div>
       </div>

@@ -1,18 +1,11 @@
 // pages/_app.js
 import "../styles/globals.css";
-import { QueryClient, QueryClientProvider } from "react-query";
-import { SessionProvider } from "next-auth/react";
+import { AuthProvider } from "../context/AuthContext";
 
-const queryClient = new QueryClient();
-
-function MyApp({ Component, pageProps: { session, ...pageProps } }) {
+export default function MyApp({ Component, pageProps }) {
   return (
-    <SessionProvider session={session}>
-      <QueryClientProvider client={queryClient}>
-        <Component {...pageProps} />
-      </QueryClientProvider>
-    </SessionProvider>
+    <AuthProvider>
+      <Component {...pageProps} />
+    </AuthProvider>
   );
 }
-
-export default MyApp;

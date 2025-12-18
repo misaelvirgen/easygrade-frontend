@@ -1,137 +1,239 @@
-// pages/upgrade.js
-import React, { useEffect, useState } from "react";
-import { useSession } from "next-auth/react";
+import React, { useState } from "react";
+import PricingButtons from "@/components/PricingButtons";
 import { useRouter } from "next/router";
-import PricingButtons from "../components/PricingButtons";   // FIXED IMPORT
-import { getUserProfile } from "../utils/getUserProfile";   // FIXED IMPORT
 
-export default function UpgradePage() {
-  const { data: session, status } = useSession();
+export default function Upgrade() {
+  const [billing, setBilling] = useState("yearly");
   const router = useRouter();
-  const [isPremium, setIsPremium] = useState(null);
 
-  // Redirect if not logged in
-  useEffect(() => {
-    if (status === "unauthenticated") {
-      router.replace("/login");
-    }
-  }, [status, router]);
-
-  // Load premium status
-  useEffect(() => {
-    async function loadProfile() {
-      if (!session?.user?.email) return;
-      const profile = await getUserProfile();
-      setIsPremium(profile?.is_premium || false);
-    }
-
-    if (status === "authenticated") loadProfile();
-  }, [status, session]);
-
-  // Redirect premium users safely (inside effect, not render)
-  useEffect(() => {
-    if (isPremium === true) {
-      router.replace("/dashboard");
-    }
-  }, [isPremium, router]);
-
-  // Loading state
-  if (status === "loading" || isPremium === null) {
-    return (
-      <div className="eg-root">
-        <div className="eg-shell">
-          <p>Checking your subscription…</p>
-        </div>
-      </div>
-    );
-  }
-
-  // If redirect has been triggered, do not render content
-  if (isPremium === true) return null;
+  const pricePro = billing === "yearly" ? 8 : 10;
 
   return (
-    <div className="eg-root">
-      <div className="eg-shell eg-upgrade-shell">
-        <header className="eg-upgrade-header">
-          <h1 className="eg-upgrade-title">Upgrade to EasyGrade Premium</h1>
-          <p className="eg-upgrade-subtitle">
-            Unlock powerful tools to save time, grade smarter, and reduce burnout.
-          </p>
-        </header>
+    <div className="upgrade-overlay" onClick={() => router.push("/dashboard")}>
 
-        {/* Pricing Section */}
-        <section className="eg-pricing-section">
-          <div className="eg-pricing-card">
-            <h2 className="eg-plan-title">EasyGrade Premium</h2>
+      <div className="upgrade-modal" onClick={(e) => e.stopPropagation()}>
+        
+        {/* CLOSE BUTTON */}
+        <button className="close-btn" onClick={() => router.push("/dashboard")}>
+          ✕
+        </button>
 
-            <ul className="eg-feature-list">
-              <li>✔ Unlimited AI-Powered Essay Grading</li>
-              <li>✔ Unlimited Rubric Builder</li>
-              <li>✔ Unlimited PDF/DOCX Exports</li>
-              <li>✔ Save & Reuse Rubrics</li>
-              <li>✔ Faster Grading Model</li>
-              <li>✔ Priority Support</li>
+        {/* HEADER */}
+        <h1 className="title">Upgrade Your EasyGrade Plan</h1>
+
+        <div className="billing-toggle">
+          <button
+            className={billing === "yearly" ? "active" : ""}
+            onClick={() => setBilling("yearly")}
+          >
+            Annually <span className="discount">–20%</span>
+          </button>
+
+          <button
+            className={billing === "monthly" ? "active" : ""}
+            onClick={() => setBilling("monthly")}
+          >
+            Monthly
+          </button>
+        </div>
+
+        {/* PRICING GRID */}
+        <div className="pricing-grid">
+
+          {/* FREE PLAN */}
+          <div className="plan-card">
+            <h2>Free</h2>
+            <p className="plan-subtitle">Basic grading features.</p>
+            <div className="price">$0</div>
+
+            <ul className="features">
+              <li>● 10 essays per month</li>
+              <li>● Upload PDFs</li>
+              <li>● Basic rubric builder</li>
             </ul>
 
-            {/* Stripe Checkout Buttons */}
-            <PricingButtons />
-
-            <p className="eg-small-note">
-              Cancel anytime • Secure checkout powered by Stripe
-            </p>
+            <button className="disabled-btn">Current Plan</button>
           </div>
-        </section>
+
+          {/* PRO PLAN */}
+          <div className="plan-card selected">
+            <div className="badge">Most Popular</div>
+            <h2>Pro</h2>
+            <p className="plan-subtitle">Unlimited grading & AI features.</p>
+
+            <div className="price">
+              ${pricePro}
+              <span className="per">/month</span>
+            </div>
+
+            <ul className="features">
+              <li>✔ Unlimited essays</li>
+              <li>✔ Advanced AI feedback</li>
+              <li>✔ Smart rubric generator</li>
+            </ul>
+
+            <PricingButtons billing={billing} />
+          </div>
+
+          {/* ENTERPRISE */}
+          <div className="plan-card">
+            <h2>Enterprise</h2>
+            <p className="plan-subtitle">For schools & districts.</p>
+            <div className="price">Custom</div>
+
+            <ul className="features">
+              <li>✔ LMS/SIS integration</li>
+              <li>✔ Admin controls</li>
+              <li>✔ Bulk teacher seats</li>
+            </ul>
+
+            <button className="contact-btn">Contact Us</button>
+          </div>
+
+        </div>
       </div>
 
       <style jsx>{`
-        .eg-upgrade-shell {
-          max-width: 780px;
-          margin: 0 auto;
-          padding: 2rem;
-          text-align: center;
+        .upgrade-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(0,0,0,0.45);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 9999;
         }
 
-        .eg-upgrade-title {
-          font-size: 2.2rem;
-          font-weight: bold;
-          margin-bottom: 0.4rem;
-        }
-
-        .eg-upgrade-subtitle {
-          color: #666;
-          margin-bottom: 2rem;
-        }
-
-        .eg-pricing-card {
+        .upgrade-modal {
+          width: 90%;
+          max-width: 1100px;
           background: white;
-          padding: 2rem;
-          border-radius: 12px;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+          border-radius: 20px;
+          padding: 36px;
+          position: relative;
+          max-height: 90vh;
+          overflow-y: auto;
         }
 
-        .eg-plan-title {
-          font-size: 1.6rem;
-          margin-bottom: 1rem;
+        .close-btn {
+          background: none;
+          border: none;
+          font-size: 1.5rem;
+          position: absolute;
+          right: 20px;
+          top: 20px;
+          cursor: pointer;
+        }
+
+        .title {
+          text-align: center;
+          margin-bottom: 20px;
+        }
+
+        .billing-toggle {
+          display: flex;
+          justify-content: center;
+          margin-bottom: 32px;
+          background: #eef1ff;
+          border-radius: 999px;
+          padding: 6px;
+          width: fit-content;
+          margin-left: auto;
+          margin-right: auto;
+        }
+
+        .billing-toggle button {
+          padding: 10px 22px;
+          border-radius: 999px;
+          border: none;
+          background: transparent;
+          cursor: pointer;
+          font-weight: 600;
+          color: #6b6f80;
+        }
+
+        .billing-toggle button.active {
+          background: white;
+          color: #333;
+          box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .discount {
+          background: #4f46e5;
+          color: white;
+          padding: 2px 8px;
+          border-radius: 999px;
+          font-size: 0.75rem;
+          margin-left: 6px;
+        }
+
+        .pricing-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+          gap: 24px;
+        }
+
+        .plan-card {
+          background: #fafafa;
+          border-radius: 16px;
+          padding: 24px;
+          border: 1px solid #e5e7eb;
+          position: relative;
+        }
+
+        .plan-card.selected {
+          border: 2px solid #4f46e5;
+          background: #f4f4ff;
+          box-shadow: 0 8px 20px rgba(79,70,229,0.15);
+        }
+
+        .badge {
+          background: #4f46e5;
+          color: white;
+          padding: 4px 10px;
+          border-radius: 999px;
+          font-size: 0.75rem;
+          position: absolute;
+          top: -10px;
+          left: 20px;
+        }
+
+        .price {
+          font-size: 2rem;
           font-weight: 700;
+          margin-bottom: 20px;
         }
 
-        .eg-feature-list {
-          list-style: none;
+        .features {
+          margin: 16px 0 20px;
           padding: 0;
-          margin: 1.5rem auto;
-          text-align: left;
-          max-width: 380px;
+          list-style: none;
+          color: #444;
         }
 
-        .eg-feature-list li {
-          margin-bottom: 0.6rem;
+        .contact-btn,
+        .disabled-btn {
+          width: 100%;
+          padding: 12px;
+          border-radius: 10px;
+          border: none;
           font-size: 1rem;
+          margin-top: 10px;
+          cursor: pointer;
         }
 
-        .eg-small-note {
-          margin-top: 1rem;
-          font-size: 0.85rem;
+        .disabled-btn {
+          background: #ddd;
           color: #777;
+        }
+
+        .contact-btn {
+          background: #4f46e5;
+          color: white;
+        }
+
+        .contact-btn:hover {
+          background: #3f3ac9;
         }
       `}</style>
     </div>
