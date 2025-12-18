@@ -1,5 +1,5 @@
 import axios from "axios";
-import { supabase } from "@/lib/supabaseClient";
+import { supabase } from "@/lib/supabase";
 
 const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "";
 
