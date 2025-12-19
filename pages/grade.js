@@ -15,7 +15,7 @@ const BUILT_IN_RUBRICS = [
 ];
 
 export default function Grade() {
-  const { profile } = useAuth();
+  const { profile, refreshProfile } = useAuth();
   const isPremium = profile?.is_premium === true;
   const router = useRouter();
 
@@ -102,6 +102,9 @@ export default function Grade() {
       rubricText
     );
     setGradeResult(result);
+
+    await refreshProfile();
+
   } catch {
     setErrorMsg("Something went wrong while grading.");
   } finally {
@@ -179,10 +182,15 @@ export default function Grade() {
           </p>
           
           {!isPremium && (
-  <p className="eg-muted-text" style={{ marginTop: 8 }}>
-    Free plan — {essaysRemaining} essays remaining
+  <p
+    className={`eg-plan-status ${
+      essaysRemaining <= 3 ? "eg-plan-status--danger" : "eg-plan-status--warning"
+    }`}
+  >
+    Free plan — {essaysRemaining} essays remaining this month
   </p>
 )}
+
 
           {errorMsg && <p className="eg-error-banner">{errorMsg}</p>}
         </section>

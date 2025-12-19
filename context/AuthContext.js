@@ -93,14 +93,20 @@ export function AuthProvider({ children }) {
     await supabase.auth.signOut();
   }
 
-  const value = {
-    user,
-    profile,
-    isPremium: profile?.is_premium === true,
-    loading,
-    signInWithGoogle,
-    logout,
-  };
+const value = {
+  user,
+  profile,
+  isPremium: profile?.is_premium === true,
+  loading,
+  signInWithGoogle,
+  logout,
+  refreshProfile: async () => {
+    if (user) {
+      await loadProfile(user);
+    }
+  },
+};
+
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

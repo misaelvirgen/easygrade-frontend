@@ -1097,3 +1097,17 @@
   margin-top: 8px;
   text-align: right;
 }
+
+.eg-plan-status {
+  margin-top: 8px;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.eg-plan-status--warning {
+  color: #b45309; /* amber */
+}
+
+.eg-plan-status--danger {
+  color: #dc2626; /* red */
+}
